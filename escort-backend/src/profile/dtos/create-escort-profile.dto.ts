@@ -1,5 +1,6 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
 import { EscortService, Ethnicity, Gender, Language } from '../../../database/enums/enums';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEscortProfileDto {
   @IsString()
@@ -18,6 +19,11 @@ export class CreateEscortProfileDto {
   @IsEnum(EscortService, { each: true })
   services!: EscortService[];
 
+  @ApiProperty({ example: '+995599123456' })
+  @IsString()
+  @Matches(/^\+?[0-9]{7,15}$/, { message: 'Invalid phoneNumber format' })
+  phoneNumber!: string;
+  
   @IsOptional()
   @IsInt()
   @Min(0)

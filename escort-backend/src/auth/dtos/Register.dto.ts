@@ -6,10 +6,7 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: '+995599123456' })
-  @IsString()
-  @Matches(/^\+?[0-9]{7,15}$/, { message: 'Invalid phoneNumber format' })
-  phoneNumber!: string;
+
 
   @ApiProperty({ example: 'StrongPass123!' })
   @IsString()
