@@ -25,6 +25,9 @@ export class EscortProfile {
   @OneToMany(() => EscortPrices, (price) => price.profile, { cascade: true })
   prices!: EscortPrices[];
 
+  @Column({ unique: true })
+  phoneNumber!: string;
+
   @Index({ unique: true })
   @Column({ unique: true })
   username!: string;
