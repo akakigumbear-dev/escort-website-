@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { EscortProfile } from './escort-profile.entity';
+import { EscortReview } from './escort-review.entity';
 
 @Entity('users')
 export class User {
@@ -23,4 +25,7 @@ export class User {
 
   @CreateDateColumn()
   createdAt!: Date;
+
+  @OneToMany(() => EscortReview, (review) => review.user)
+reviews!: EscortReview[];
 }

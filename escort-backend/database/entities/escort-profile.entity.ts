@@ -12,6 +12,8 @@ import {
 import { User } from './user.entity';
 import { EscortService, Ethnicity, Gender, Language } from 'database/enums/enums';
 import { EscortPrices } from './escort-price.entity';
+import { EscortPicture } from './escort-picture.entity';
+import { EscortReview } from './escort-review.entity';
 
 @Entity('escort_profiles')
 export class EscortProfile {
@@ -25,6 +27,13 @@ export class EscortProfile {
   @OneToMany(() => EscortPrices, (price) => price.profile, { cascade: true })
   prices!: EscortPrices[];
 
+    @OneToMany(() => EscortPicture, (picture) => picture.profile, { cascade: true })
+  pictures!: EscortPicture[];
+
+
+  @OneToMany(() => EscortReview, (review) => review.profile)
+  reviews!: EscortReview[];
+  
   @Column({ unique: true })
   phoneNumber!: string;
 
@@ -52,6 +61,9 @@ export class EscortProfile {
 
   @Column({ type: 'int', nullable: true })
   weight?: number;
+
+  @Column({ type: 'int', nullable: true })
+  age?: number;
 
   @Column({ type: 'enum', enum: Ethnicity, nullable: true })
   ethnicity?: Ethnicity;
