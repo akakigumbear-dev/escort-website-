@@ -21,20 +21,20 @@ export class EscortPrices {
   @ManyToOne(() => EscortProfile, { onDelete: 'CASCADE' })
   profile!: EscortProfile;
 
-  @Index()
+  @Index('IDX_escort_prices_serviceLocation')
   @Column({ type: 'enum', enum: ServiceLocation })
   serviceLocation!: ServiceLocation;
 
   // ფასები (GEL), nullable თუ არ გინდა ყველა ტარიფის სავალდებულო გაკეთება
-  @Index()
+  @Index('IDX_escort_prices_price30min')
   @Column({ type: 'int', nullable: true })
   price30min?: number | null;
 
-  @Index()
+  @Index('IDX_escort_prices_price1hour')
   @Column({ type: 'int', nullable: true })
   price1hour?: number | null;
 
-  @Index()
+  @Index('IDX_escort_prices_priceWholeNight')
   @Column({ type: 'int', nullable: true })
   priceWholeNight?: number | null;
 

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import EscortCard from "@/components/EscortCard";
 import { fetchVipEscorts } from "@/lib/escorts-api";
 
 const VIPCarousel = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -31,14 +33,14 @@ const VIPCarousel = () => {
   };
 
   return (
-    <section className="relative py-10">
+    <section className="relative py-10 overflow-hidden">
       <div className="container">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="font-display text-2xl font-bold md:text-3xl">
-              <span className="gold-text">VIP</span>{" "}
-              <span className="text-foreground">Escorts</span>
+              <span className="gold-text">{t("vip.title")}</span>{" "}
+              <span className="text-foreground">{t("vip.escorts")}</span>
             </h2>
           </div>
           <div className="flex gap-2">
@@ -52,7 +54,11 @@ const VIPCarousel = () => {
         </div>
       </div>
 
-      <div ref={scrollRef} onScroll={checkScroll} className="scrollbar-none flex gap-4 overflow-x-auto px-[max(1rem,calc((100vw-1400px)/2+2rem))] pb-2 snap-x">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex gap-4 overflow-x-auto overflow-y-hidden px-[max(1rem,calc((100vw-1400px)/2+2rem))] pb-2 snap-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="w-[220px] flex-shrink-0 md:w-[240px]">
@@ -67,7 +73,7 @@ const VIPCarousel = () => {
       </div>
 
       {!isLoading && vipEscorts.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground py-8">No VIP escorts available</p>
+        <p className="text-center text-sm text-muted-foreground py-8">{t("vip.noVip")}</p>
       )}
     </section>
   );

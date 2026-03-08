@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { getMyProfile } from "@/lib/profile-api";
+
+export type UserRole = "CLIENT" | "ESCORT";
 
 export interface User {
+  id: string;
   email: string;
   phoneNumber?: string;
+  role?: UserRole;
 }
 
 export interface EscortProfile {
@@ -10,12 +15,17 @@ export interface EscortProfile {
   username: string;
   city: string;
   address: string;
-  services: string[];
-  height: number;
-  weight: number;
-  ethnicity: string;
-  gender: string;
-  languages: string[];
+  phoneNumber?: string;
+  subscriptionPriceGel?: number | null;
+  services?: string[];
+  height?: number;
+  weight?: number;
+  ethnicity?: string;
+  gender?: string;
+  languages?: string[];
+  prices?: unknown[];
+  pictures?: Array<{ id: string; picturePath: string; isProfilePicture: boolean; isExclusive?: boolean; mediaType?: string | null }>;
+  subscriberPhotos?: Array<{ id: string; picturePath: string; mediaType?: string | null; sortOrder: number }>;
 }
 
 interface AuthContextType {
@@ -63,6 +73,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const updateEscortProfile = useCallback((profile: EscortProfile | null) => {
+    setEscortProfile(profile);
+    if (profile) {
+      localStorage.setItem("escort_profile", JSON.stringify(profile));
+    } else {
+      localStorage.removeItem("escort_profile");
+    }
+  }, []);
+
+  // When token exists, fetch escort profile so escorts see "My profile" after login/refresh
+  useEffect(() => {
+    if (!token) return;
+    getMyProfile()
+      .then((profile) => updateEscortProfile(profile as EscortProfile))
+      .catch(() => updateEscortProfile(null));
+  }, [token, updateEscortProfile]);
+
   const login = useCallback((u: User, t: string) => {
     setUser(u);
     setToken(t);
@@ -77,15 +104,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
     localStorage.removeItem("escort_profile");
-  }, []);
-
-  const updateEscortProfile = useCallback((profile: EscortProfile | null) => {
-    setEscortProfile(profile);
-    if (profile) {
-      localStorage.setItem("escort_profile", JSON.stringify(profile));
-    } else {
-      localStorage.removeItem("escort_profile");
-    }
   }, []);
 
   return (

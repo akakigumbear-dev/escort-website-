@@ -1,13 +1,13 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Eye, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchTopViewedEscorts } from "@/lib/escorts-api";
-import { buildImageUrl } from "@/lib/api";
-
-const PLACEHOLDER = "/placeholder.svg";
+import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
 
 const TopViewed = () => {
+  const { t } = useTranslation();
   const { data: topViewed = [], isLoading } = useQuery({
     queryKey: ["escorts", "top-viewed"],
     queryFn: fetchTopViewedEscorts,
@@ -17,7 +17,7 @@ const TopViewed = () => {
     <div>
       <div className="mb-4 flex items-center gap-2">
         <TrendingUp className="h-5 w-5 text-primary" />
-        <h2 className="font-display text-xl font-bold text-foreground">Top Viewed</h2>
+        <h2 className="font-display text-xl font-bold text-foreground">{t("topViewed.title")}</h2>
       </div>
 
       <div className="space-y-2">
@@ -39,7 +39,7 @@ const TopViewed = () => {
               >
                 <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
                    <img
-                     src={escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : PLACEHOLDER}
+                     src={escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : PLACEHOLDER_THUMBNAIL}
                      alt={escort.username}
                      className="h-full w-full object-cover"
                      loading="lazy"
@@ -63,7 +63,7 @@ const TopViewed = () => {
               </Link>
             ))}
         {!isLoading && topViewed.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+          <p className="text-sm text-muted-foreground text-center py-4">{t("topViewed.noData")}</p>
         )}
       </div>
     </div>

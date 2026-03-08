@@ -21,19 +21,27 @@ export class EscortPicture {
   @JoinColumn({ name: 'profileId' })
   profile!: EscortProfile;
 
-  @Index()
+  @Index('IDX_escort_pictures_profileId')
   @Column('uuid')
   profileId!: string;
 
   // სურათის path (filesystem ან CDN URL)
-  @Index()
+  @Index('IDX_escort_pictures_picturePath')
   @Column({ type: 'varchar', length: 500 })
   picturePath!: string;
 
   // არის თუ არა მთავარი profile picture
-  @Index()
+  @Index('IDX_escort_pictures_isProfilePicture')
   @Column({ type: 'boolean', default: false })
   isProfilePicture!: boolean;
+
+  // Premium: only visible to subscribers
+  @Column({ type: 'boolean', default: false })
+  isExclusive!: boolean;
+
+  // 'image' | 'video' - infer from path if null
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  mediaType!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

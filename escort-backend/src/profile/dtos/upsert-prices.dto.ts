@@ -1,12 +1,4 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
 import { ServiceLocation } from 'database/enums/enums';
 export class UpsertPricesDto {
   @IsEnum(ServiceLocation)

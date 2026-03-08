@@ -13,6 +13,8 @@ import { CreateEscortProfileDto } from './dtos/create-escort-profile.dto';
 import { UpsertPricesDto } from './dtos/upsert-prices.dto';
 import { UpdateEscortProfileDto } from './dtos/update-escort-profile.dto';
 import { EscortPicture } from 'database/entities/escort-picture.entity';
+import { EscortSubscriberPhoto } from 'database/entities/escort-subscriber-photo.entity';
+import { UserRole } from 'database/enums/enums';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 
@@ -26,6 +28,8 @@ export class ProfileService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(EscortPicture)
     private readonly escortPictureRepo: Repository<EscortPicture>,
+    @InjectRepository(EscortSubscriberPhoto)
+    private readonly subscriberPhotoRepo: Repository<EscortSubscriberPhoto>,
   ) {}
 
   async createEscortProfile(userId: string, dto: CreateEscortProfileDto) {
@@ -51,16 +55,29 @@ export class ProfileService {
       prices: [],
     } as any);
 
-    return this.profiles.save(profile);
+    const saved = await this.profiles.save(profile);
+    await this.users.update({ id: userId }, { role: UserRole.ESCORT });
+    return saved;
   }
 
   async getMyEscortProfile(userId: string) {
     const profile = await this.profiles.findOne({
       where: { user: { id: userId } } as any,
-      relations: { prices: true, user: true } as any,
+      relations: {
+        prices: true,
+        user: true,
+        pictures: true,
+        subscriberPhotos: true,
+      } as any,
     });
 
     if (!profile) throw new NotFoundException('Escort profile not found');
+    if (
+      (profile as any).user &&
+      typeof (profile as any).user.password === 'string'
+    ) {
+      delete (profile as any).user.password;
+    }
     return profile;
   }
 
@@ -170,13 +187,15 @@ export class ProfileService {
       throw new BadRequestException('Maximum 20 pictures allowed');
     }
 
-    const pictures = files.map((file, index) =>
-      this.escortPictureRepo.create({
+    const pictures = files.map((file, index) => {
+      const isVideo = file.mimetype?.startsWith('video/');
+      return this.escortPictureRepo.create({
         profileId: profile.id,
         picturePath: `/uploads/escort-pictures/${file.filename}`,
-        isProfilePicture: existingCount === 0 && index === 0,
-      }),
-    );
+        isProfilePicture: existingCount === 0 && index === 0 && !isVideo,
+        mediaType: isVideo ? 'video' : 'image',
+      });
+    });
 
     const savedPictures = await this.escortPictureRepo.save(pictures);
 
@@ -185,6 +204,42 @@ export class ProfileService {
         id: picture.id,
         picturePath: picture.picturePath,
         isProfilePicture: picture.isProfilePicture,
+        mediaType: (picture as any).mediaType ?? null,
+      })),
+    };
+  }
+
+  async uploadSubscriberMedia(userId: string, files: Express.Multer.File[]) {
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
+    if (!profile) throw new NotFoundException('Escort profile not found');
+    if (!files?.length) throw new BadRequestException('No files uploaded');
+
+    const existing = await this.subscriberPhotoRepo.find({
+      where: { profileId: profile.id },
+      order: { sortOrder: 'DESC' },
+      take: 1,
+    });
+    let sortOrder = existing[0]?.sortOrder ?? -1;
+
+    const items = files.map((file) => {
+      const isVideo = file.mimetype?.startsWith('video/');
+      sortOrder += 1;
+      return this.subscriberPhotoRepo.create({
+        profileId: profile.id,
+        picturePath: `/uploads/escort-pictures/${file.filename}`,
+        mediaType: isVideo ? 'video' : 'image',
+        sortOrder,
+      });
+    });
+    const saved = await this.subscriberPhotoRepo.save(items);
+    return {
+      items: saved.map((s) => ({
+        id: s.id,
+        picturePath: s.picturePath,
+        mediaType: s.mediaType,
+        sortOrder: s.sortOrder,
       })),
     };
   }
@@ -261,6 +316,29 @@ export class ProfileService {
         id: target.id,
         picturePath: target.picturePath,
       },
+    };
+  }
+
+  async setPictureExclusive(
+    userId: string,
+    pictureId: string,
+    isExclusive: boolean,
+  ) {
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+      relations: { pictures: true },
+    });
+    if (!profile) throw new NotFoundException('Escort profile not found');
+    const picture = profile.pictures?.find((p) => p.id === pictureId);
+    if (!picture) throw new NotFoundException('Picture not found');
+    if (picture.isProfilePicture) {
+      throw new BadRequestException('Profile picture cannot be exclusive');
+    }
+    picture.isExclusive = isExclusive;
+    await this.escortPictureRepo.save(picture);
+    return {
+      id: picture.id,
+      isExclusive: picture.isExclusive,
     };
   }
 }

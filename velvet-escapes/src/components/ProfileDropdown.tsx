@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Star, Edit } from "lucide-react";
+import { User, LogOut, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import BecomeEscortModal from "@/components/BecomeEscortModal";
-import EditEscortModal from "@/components/EditEscortModal";
 
 const ProfileDropdown = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, logout, escortProfile } = useAuth();
   const [escortModalOpen, setEscortModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
 
   return (
     <>
@@ -23,22 +25,23 @@ const ProfileDropdown = () => {
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">{user?.email}</div>
           <DropdownMenuSeparator className="bg-border/50" />
           {escortProfile ? (
-            <DropdownMenuItem onClick={() => setEditModalOpen(true)} className="cursor-pointer">
-              <Edit className="h-4 w-4 mr-2 text-primary" /> Edit Escort Profile
+            <DropdownMenuItem asChild>
+              <Link to="/profile" className="cursor-pointer flex items-center">
+                <User className="h-4 w-4 mr-2 text-primary" /> {t("auth.myProfile")}
+              </Link>
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={() => setEscortModalOpen(true)} className="cursor-pointer">
-              <Star className="h-4 w-4 mr-2 text-primary" /> Become Escort
+              <Star className="h-4 w-4 mr-2 text-primary" /> {t("auth.becomeEscort")}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
-            <LogOut className="h-4 w-4 mr-2" /> Logout
+            <LogOut className="h-4 w-4 mr-2" /> {t("auth.logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <BecomeEscortModal open={escortModalOpen} onOpenChange={setEscortModalOpen} />
-      <EditEscortModal open={editModalOpen} onOpenChange={setEditModalOpen} />
+      <BecomeEscortModal open={escortModalOpen} onOpenChange={setEscortModalOpen} onComplete={() => { setEscortModalOpen(false); navigate("/profile"); }} />
     </>
   );
 };

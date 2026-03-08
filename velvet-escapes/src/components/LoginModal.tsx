@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ interface LoginModalProps {
 }
 
 const LoginModal = ({ open, onOpenChange, onSwitchToRegister }: LoginModalProps) => {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -23,20 +25,21 @@ const LoginModal = ({ open, onOpenChange, onSwitchToRegister }: LoginModalProps)
     e.preventDefault();
     setError("");
     if (!form.identifier || !form.password) {
-      setError("All fields are required.");
+      setError(t("auth.allFieldsRequired"));
       return;
     }
     setLoading(true);
     try {
       const data = await apiFetch("/auth/login", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ email: form.identifier, password: form.password }),
       });
       const token = data.token || data.access_token || data.accessToken || "";
-      login({ email: form.identifier }, token);
+      const u = data.user || { email: form.identifier };
+      login({ id: u.id, email: u.email || form.identifier, role: u.role }, token);
       handleClose(false);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("auth.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -55,29 +58,29 @@ const LoginModal = ({ open, onOpenChange, onSwitchToRegister }: LoginModalProps)
       <DialogContent className="bg-card border-border/50 sm:max-w-md">
         <DialogHeader className="items-center">
           <Crown className="h-8 w-8 text-primary mb-2" />
-          <DialogTitle className="font-display text-2xl gold-text">Welcome Back</DialogTitle>
-          <DialogDescription className="text-muted-foreground">Sign in with your email or phone number</DialogDescription>
+          <DialogTitle className="font-display text-2xl gold-text">{t("auth.welcomeBack")}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">{t("auth.signInHint")}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="login-id">Email or Phone</Label>
-            <Input id="login-id" placeholder="your@email.com or +1234567890" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} className="bg-background border-border/50" />
+            <Label htmlFor="login-id">{t("auth.emailOrPhone")}</Label>
+            <Input id="login-id" placeholder={t("auth.emailOrPhonePlaceholder")} value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} className="bg-background border-border/50" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="login-pw">Password</Label>
-            <Input id="login-pw" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="bg-background border-border/50" />
+            <Label htmlFor="login-pw">{t("auth.password")}</Label>
+            <Input id="login-pw" type="password" placeholder={t("auth.passwordPlaceholder")} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="bg-background border-border/50" />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" disabled={loading} className="w-full gold-gradient font-semibold">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Login"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("header.login")}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <button type="button" onClick={() => { handleClose(false); onSwitchToRegister(); }} className="text-primary hover:underline">Register</button>
+            {t("auth.dontHaveAccount")}{" "}
+            <button type="button" onClick={() => { handleClose(false); onSwitchToRegister(); }} className="text-primary hover:underline">{t("header.register")}</button>
           </p>
         </form>
       </DialogContent>

@@ -41,3 +41,14 @@ export enum ServiceLocation {
   IN_CALL = 'IN_CALL',
   OUT_CALL = 'OUT_CALL',
 }
+
+export enum UserRole {
+  CLIENT = 'CLIENT',
+  ESCORT = 'ESCORT',
+}
+
+export enum SubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+}

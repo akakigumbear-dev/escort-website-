@@ -78,6 +78,15 @@ export class ProfileController {
     return this.escort.uploadPictures(req.user.userId, files);
   }
 
+  @Post('subscriber-media/upload')
+  @UseInterceptors(FilesInterceptor('media', 20, escortPicturesMulterOptions))
+  uploadSubscriberMedia(
+    @Req() req: any,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.escort.uploadSubscriberMedia(req.user.userId, files);
+  }
+
   @Delete('pictures/:pictureId')
   deletePicture(
     @Req() req: any,
@@ -89,5 +98,18 @@ export class ProfileController {
   @Patch('pictures/profile')
   setProfilePicture(@Req() req: any, @Body() dto: SetProfilePictureDto) {
     return this.escort.setProfilePicture(req.user.userId, dto.pictureId);
+  }
+
+  @Patch('pictures/:pictureId/exclusive')
+  setPictureExclusive(
+    @Req() req: any,
+    @Param('pictureId', new ParseUUIDPipe()) pictureId: string,
+    @Body() body: { isExclusive: boolean },
+  ) {
+    return this.escort.setPictureExclusive(
+      req.user.userId,
+      pictureId,
+      !!body?.isExclusive,
+    );
   }
 }

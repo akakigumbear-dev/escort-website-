@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Crown, Heart } from "lucide-react";
+import { Crown, Heart, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import RegisterModal from "@/components/RegisterModal";
 import LoginModal from "@/components/LoginModal";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Header = () => {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { favorites } = useFavorites();
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -24,10 +27,20 @@ const Header = () => {
           </Link>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            {isAuthenticated && (
+              <Link
+                to="/messages"
+                className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Messages"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Link>
+            )}
             <Link
               to="/favorites"
               className="relative flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="Favorites"
+              aria-label={t("header.favorites")}
             >
               <Heart className="h-5 w-5" fill={favorites.length > 0 ? "currentColor" : "none"} />
               {favorites.length > 0 && (
@@ -41,10 +54,10 @@ const Header = () => {
             ) : (
               <>
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => setLoginOpen(true)}>
-                  Login
+                  {t("header.login")}
                 </Button>
                 <Button size="sm" className="gold-gradient font-semibold" onClick={() => setRegisterOpen(true)}>
-                  Register
+                  {t("header.register")}
                 </Button>
               </>
             )}

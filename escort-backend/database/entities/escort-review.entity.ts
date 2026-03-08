@@ -13,7 +13,7 @@ import { User } from './user.entity';
 import { EscortProfile } from './escort-profile.entity';
 
 @Entity('escort_reviews')
-@Index(['userId', 'profileId'], { unique: true }) // ერთ იუზერს ერთ პროფილზე ერთი review
+@Index('IDX_escort_reviews_userId_profileId', ['userId', 'profileId'], { unique: true }) // ერთ იუზერს ერთ პროფილზე ერთი review
 @Check(`"rating" >= 1 AND "rating" <= 5`)
 export class EscortReview {
   @PrimaryGeneratedColumn('uuid')
@@ -24,7 +24,7 @@ export class EscortReview {
   user!: User;
 
   
-  @Index()
+  @Index('IDX_escort_reviews_userId')
   @Column('uuid')
   userId!: string;
 
@@ -32,7 +32,7 @@ export class EscortReview {
   @JoinColumn({ name: 'profileId' })
   profile!: EscortProfile;
 
-  @Index()
+  @Index('IDX_escort_reviews_profileId')
   @Column('uuid')
   profileId!: string;
 

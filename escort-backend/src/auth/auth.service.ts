@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'database/entities/user.entity';
+import { UserRole } from 'database/enums/enums';
 
 type RegisterDto = {
   email: string;
@@ -69,6 +70,7 @@ export class AuthService {
       user: {
         id: savedUser.id,
         email: savedUser.email,
+        role: savedUser.role ?? UserRole.CLIENT,
       },
     };
   }
@@ -82,6 +84,7 @@ export class AuthService {
         id: true,
         email: true,
         password: true,
+        role: true,
       } as any,
     });
 
@@ -104,6 +107,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role ?? UserRole.CLIENT,
       },
     };
   }

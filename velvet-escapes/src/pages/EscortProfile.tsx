@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, DollarSign, Ruler, Weight, Globe, Briefcase, User, Star, Calendar } from "lucide-react";
+import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, DollarSign, Ruler, Weight, Globe, Briefcase, User, Star, Calendar, MessageCircle, Lock } from "lucide-react";
 
 const WHATSAPP_MSG = "I saw your profile at elit.ge @ velvet-escapes";
 
@@ -22,12 +24,10 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 import { fetchEscortById, type EscortPrices } from "@/lib/escorts-api";
-import { buildImageUrl } from "@/lib/api";
+import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
 import { useFavorites } from "@/contexts/FavoritesContext";
 
-const PLACEHOLDER = "/placeholder.svg";
-
-const PriceCard = ({ title, prices }: { title: string; prices: EscortPrices | null }) => (
+const PriceCard = ({ title, prices, t }: { title: string; prices: EscortPrices | null; t: (k: string) => string }) => (
   <div className="rounded-xl border border-border/50 bg-card p-5">
     <div className="flex items-center gap-2 mb-4">
       <DollarSign className="h-4 w-4 text-primary" />
@@ -35,7 +35,7 @@ const PriceCard = ({ title, prices }: { title: string; prices: EscortPrices | nu
     </div>
     {prices ? (
       <div className="space-y-3">
-        {([["30 Minutes", prices.price30min], ["1 Hour", prices.price1hour], ["Whole Night", prices.priceWholeNight]] as const).map(([label, price]) => (
+        {([[t("profile.price30min"), prices.price30min], [t("profile.price1hour"), prices.price1hour], [t("profile.wholeNight"), prices.priceWholeNight]] as const).map(([label, price]) => (
           <div key={label} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
             <span className="text-sm text-muted-foreground">{label}</span>
             <span className="font-display text-lg font-bold gold-text">${price}</span>
@@ -43,14 +43,18 @@ const PriceCard = ({ title, prices }: { title: string; prices: EscortPrices | nu
         ))}
       </div>
     ) : (
-      <p className="text-sm text-muted-foreground">Not specified</p>
+      <p className="text-sm text-muted-foreground">{t("profile.notSpecified")}</p>
     )}
   </div>
 );
 
 const EscortProfile = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
   const [showContact, setShowContact] = useState(false);
+  const [mainImgError, setMainImgError] = useState(false);
+  const [failedGalleryIds, setFailedGalleryIds] = useState<Set<number>>(new Set());
   const { isFavorite, toggleFavorite } = useFavorites();
 
   const { data: escort, isLoading, error } = useQuery({
@@ -86,14 +90,17 @@ const EscortProfile = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container py-20 text-center">
-          <p className="text-muted-foreground">Profile not found.</p>
-          <Link to="/" className="mt-4 inline-block text-primary hover:underline">Back to Home</Link>
+          <p className="text-muted-foreground">{t("profile.profileNotFound")}</p>
+          <Link to="/" className="mt-4 inline-block text-primary hover:underline">{t("profile.backToHome")}</Link>
         </div>
       </div>
     );
   }
 
-  const mainImage = escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : PLACEHOLDER;
+  const mainImage =
+    mainImgError || !escort.profilePicture
+      ? PLACEHOLDER_THUMBNAIL
+      : buildImageUrl(escort.profilePicture.picturePath);
   const galleryImages = escort.pictures?.filter(p => !p.isProfilePicture) ?? [];
 
   return (
@@ -101,20 +108,26 @@ const EscortProfile = () => {
       <Header />
       <div className="container py-8">
         <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to browse
+          <ArrowLeft className="h-4 w-4" /> {t("profile.backToBrowse")}
         </Link>
 
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left: Images */}
           <div className="w-full lg:w-[420px] flex-shrink-0 space-y-3">
             <div className="overflow-hidden rounded-xl border border-border/50">
-              <img src={mainImage} alt={escort.username} className="h-auto w-full object-cover aspect-[3/4]" />
+              <img src={mainImage} alt={escort.username} className="h-auto w-full object-cover aspect-[3/4]" onError={() => setMainImgError(true)} />
             </div>
             {galleryImages.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {galleryImages.map((pic) => (
                    <div key={pic.id} className="overflow-hidden rounded-lg border border-border/50">
-                     <img src={buildImageUrl(pic.picturePath)} alt="" className="h-full w-full object-cover aspect-square" loading="lazy" />
+                     <img
+                       src={failedGalleryIds.has(pic.id) ? PLACEHOLDER_THUMBNAIL : buildImageUrl(pic.picturePath)}
+                       alt=""
+                       className="h-full w-full object-cover aspect-square"
+                       loading="lazy"
+                       onError={() => setFailedGalleryIds((prev) => new Set(prev).add(pic.id))}
+                     />
                    </div>
                 ))}
               </div>
@@ -140,7 +153,7 @@ const EscortProfile = () => {
 
               <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1"><MapPin className="h-4 w-4 text-primary" /> {escort.city}{escort.address && escort.address !== escort.city ? `, ${escort.address}` : ""}</span>
-                <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {escort.viewCount.toLocaleString()} views</span>
+                <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {escort.viewCount.toLocaleString()} {t("profile.views")}</span>
                 {escort.averageRating > 0 && (
                   <span className="flex items-center gap-1"><Star className="h-4 w-4 text-primary" /> {escort.averageRating.toFixed(1)} ({escort.reviewsCount})</span>
                 )}
@@ -150,11 +163,11 @@ const EscortProfile = () => {
             {/* Details grid */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { icon: <User className="h-4 w-4" />, label: "Gender", value: escort.gender },
-                { icon: <Globe className="h-4 w-4" />, label: "Ethnicity", value: escort.ethnicity },
-                { icon: <Ruler className="h-4 w-4" />, label: "Height", value: escort.height ? `${escort.height} cm` : "—" },
-                { icon: <Weight className="h-4 w-4" />, label: "Weight", value: escort.weight ? `${escort.weight} kg` : "—" },
-                ...(escort.age ? [{ icon: <Calendar className="h-4 w-4" />, label: "Age", value: `${escort.age}` }] : []),
+                { icon: <User className="h-4 w-4" />, label: t("profile.gender"), value: escort.gender },
+                { icon: <Globe className="h-4 w-4" />, label: t("profile.ethnicity"), value: escort.ethnicity },
+                { icon: <Ruler className="h-4 w-4" />, label: t("profile.height"), value: escort.height ? `${escort.height} cm` : "—" },
+                { icon: <Weight className="h-4 w-4" />, label: t("profile.weight"), value: escort.weight ? `${escort.weight} kg` : "—" },
+                ...(escort.age ? [{ icon: <Calendar className="h-4 w-4" />, label: t("profile.age"), value: `${escort.age}` }] : []),
               ].map((item) => (
                 <div key={item.label} className="rounded-lg border border-border/50 bg-card p-3 text-center">
                   <div className="flex justify-center text-primary mb-1">{item.icon}</div>
@@ -169,7 +182,7 @@ const EscortProfile = () => {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Briefcase className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Services</span>
+                  <span className="text-sm font-semibold text-foreground">{t("profile.services")}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {escort.services.map((s) => (
@@ -184,7 +197,7 @@ const EscortProfile = () => {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Globe className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Languages</span>
+                  <span className="text-sm font-semibold text-foreground">{t("profile.languages")}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {escort.languages.map((l) => (
@@ -198,12 +211,12 @@ const EscortProfile = () => {
             <div className="rounded-lg border border-border/50 bg-card p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Reviews</span>
+                <span className="text-sm font-semibold text-foreground">{t("profile.reviews")}</span>
               </div>
               {escort.reviewsCount > 0 ? (
-                <p className="text-sm text-muted-foreground">{escort.averageRating.toFixed(1)} average from {escort.reviewsCount} reviews</p>
+                <p className="text-sm text-muted-foreground">{t("profile.reviewsSummary", { rating: escort.averageRating.toFixed(1), count: escort.reviewsCount })}</p>
               ) : (
-                <p className="text-sm text-muted-foreground">No reviews yet</p>
+                <p className="text-sm text-muted-foreground">{t("profile.noReviews")}</p>
               )}
             </div>
 
@@ -233,11 +246,31 @@ const EscortProfile = () => {
                       setShowContact(true);
                     }}
                   >
-                    Contact
+                    {t("profile.contact")}
                   </a>
                 )
               ) : (
-                <span className="text-sm text-muted-foreground">Contact not available</span>
+                <span className="text-sm text-muted-foreground">{t("profile.contactNotAvailable")}</span>
+              )}
+              {isAuthenticated && !escort.subscribed && (escort.subscriptionPriceGel != null || escort.isVip || (escort.exclusiveMediaCount ?? 0) > 0) && (
+                <Link
+                  to={`/pay/${escort.id}`}
+                  className="gold-gradient inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-primary-foreground shadow hover:opacity-90"
+                >
+                  <Lock className="h-4 w-4" />
+                  {t("profile.subscribe")} {escort.subscriptionPriceGel != null ? `— ${escort.subscriptionPriceGel}₾/mo` : "— 29₾/mo"}
+                </Link>
+              )}
+              {escort.subscribed && (
+                <span className="rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-3 py-1 text-xs font-medium">Subscribed</span>
+              )}
+              {escort.subscribed && escort.ownerUserId && (
+                <Link
+                  to={`/messages?with=${escort.ownerUserId}`}
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  <MessageCircle className="h-4 w-4" /> Message
+                </Link>
               )}
               <a
                 href="#save-profile"
@@ -262,14 +295,14 @@ const EscortProfile = () => {
                 >
                   <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
                 </svg>
-                {isFavorite(escort.id) ? "Saved" : "Save Profile"}
+                {isFavorite(escort.id) ? t("profile.saved") : t("profile.saveProfile")}
               </a>
             </div>
 
             {/* Pricing */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <PriceCard title="In Call" prices={escort.prices.inCall} />
-              <PriceCard title="Out Call" prices={escort.prices.outCall} />
+              <PriceCard title={t("profile.inCall")} prices={escort.prices.inCall} t={t} />
+              <PriceCard title={t("profile.outCall")} prices={escort.prices.outCall} t={t} />
             </div>
           </div>
         </div>

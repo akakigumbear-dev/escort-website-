@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Crown, MapPin } from "lucide-react";
 
 const CITIES = ["Tbilisi", "Batumi", "Kutaisi", "Rustavi", "Zugdidi"];
@@ -8,6 +9,7 @@ interface FooterProps {
 }
 
 const Footer = ({ selectedCity, onCitySelect }: FooterProps) => {
+  const { t } = useTranslation();
   return (
     <footer className="border-t border-border/50 bg-card/50 backdrop-blur-sm mt-12">
       <div className="container py-10">
@@ -22,7 +24,7 @@ const Footer = ({ selectedCity, onCitySelect }: FooterProps) => {
           <div className="text-center space-y-3">
             <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              <span>Browse by City</span>
+              <span>{t("footer.browseByCity")}</span>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               {CITIES.map((city) => (
@@ -43,7 +45,7 @@ const Footer = ({ selectedCity, onCitySelect }: FooterProps) => {
                   onClick={() => onCitySelect(null)}
                   className="px-4 py-1.5 rounded-full text-sm font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                 >
-                  Clear
+                  {t("footer.clear")}
                 </button>
               )}
             </div>
@@ -51,7 +53,7 @@ const Footer = ({ selectedCity, onCitySelect }: FooterProps) => {
 
           {/* Copyright */}
           <p className="text-xs text-muted-foreground/50 mt-4">
-            © {new Date().getFullYear()} Élite Companions. All rights reserved.
+            {t("footer.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
       </div>

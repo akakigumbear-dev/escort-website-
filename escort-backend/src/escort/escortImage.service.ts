@@ -11,7 +11,12 @@ import * as mime from 'mime-types';
 export class EscortImageService {
   private readonly projectRoot = process.cwd();
   // Use scrapper/images (sibling to escort-backend) for scraped escort pictures
-  private readonly imagesDir = path.resolve(this.projectRoot, '..', 'scrapper', 'images');
+  private readonly imagesDir = path.resolve(
+    this.projectRoot,
+    '..',
+    'scrapper',
+    'images',
+  );
 
   getImageStream(rawPath: string) {
     if (!rawPath || typeof rawPath !== 'string') {

@@ -4,6 +4,10 @@ import { DatabaseModule } from 'database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
 import { EscortModule } from './escort/escort.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { MessagesModule } from './messages/messages.module';
+import { SubscriptionPostsModule } from './subscription-posts/subscription-posts.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -11,6 +15,9 @@ import { EscortModule } from './escort/escort.module';
     AuthModule,
     ProfileModule,
     EscortModule,
+    SubscriptionModule,
+    MessagesModule,
+    SubscriptionPostsModule,
   ],
   controllers: [],
   providers: [],

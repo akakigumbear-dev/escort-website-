@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Crown, Check, DollarSign } from "lucide-react";
+import { Loader2, Crown, Check, DollarSign, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
@@ -32,9 +32,13 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
 
   const [inCall, setInCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
   const [outCall, setOutCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
+  const [pictures, setPictures] = useState<Array<{ id: string; picturePath: string; isProfilePicture: boolean; isExclusive?: boolean }>>([]);
 
   useEffect(() => {
     if (open && escortProfile) {
+      apiFetch("/profile/get")
+        .then((p: { pictures?: Array<{ id: string; picturePath: string; isProfilePicture: boolean; isExclusive?: boolean }> }) => setPictures(p.pictures || []))
+        .catch(() => setPictures([]));
       setProfile({
         username: escortProfile.username || "",
         city: escortProfile.city || "",
@@ -63,13 +67,23 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
     }
     setLoading(true);
     try {
-      const body = { ...profile, height: Number(profile.height) || 0, weight: Number(profile.weight) || 0 };
-      await apiFetch("/profile/update", { method: "PUT", body: JSON.stringify(body) });
-      setEscortProfile({ ...escortProfile, ...body } as any);
+      const body = {
+        username: String(profile.username).trim(),
+        city: String(profile.city).trim(),
+        address: String(profile.address ?? "").trim(),
+        services: Array.isArray(profile.services) ? profile.services : [],
+        height: profile.height !== "" && profile.height != null ? Number(profile.height) : undefined,
+        weight: profile.weight !== "" && profile.weight != null ? Number(profile.weight) : undefined,
+        ethnicity: (profile.ethnicity && String(profile.ethnicity).trim()) || undefined,
+        gender: String(profile.gender).trim(),
+        languages: Array.isArray(profile.languages) ? profile.languages : [],
+      };
+      await apiFetch("/profile/edit", { method: "PATCH", body: JSON.stringify(body) });
+      setEscortProfile({ ...escortProfile, ...body, height: body.height ?? 0, weight: body.weight ?? 0 });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -86,12 +100,12 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
           price1hour: Number(prices.price1hour) || 0,
           priceWholeNight: Number(prices.priceWholeNight) || 0,
         };
-        await apiFetch("/profile/prices", { method: "PUT", body: JSON.stringify(body) });
+        await apiFetch("/profile/prices", { method: "POST", body: JSON.stringify(body) });
       }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -100,6 +114,18 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
   const handleClose = (val: boolean) => {
     if (!val) { setError(""); setSuccess(false); }
     onOpenChange(val);
+  };
+
+  const setPictureExclusive = async (pictureId: string, isExclusive: boolean) => {
+    try {
+      await apiFetch(`/profile/pictures/${pictureId}/exclusive`, {
+        method: "PATCH",
+        body: JSON.stringify({ isExclusive }),
+      });
+      setPictures((prev) => prev.map((p) => (p.id === pictureId ? { ...p, isExclusive } : p)));
+    } catch {
+      // Ignore exclusive toggle errors
+    }
   };
 
   return (
@@ -186,6 +212,30 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
           </Button>
         </form>
+
+        {/* Premium / Exclusive photos */}
+        {pictures.filter((p) => !p.isProfilePicture).length > 0 && (
+          <div className="border-t border-border/50 pt-4 mt-2 space-y-3">
+            <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" /> Premium content
+            </h3>
+            <p className="text-xs text-muted-foreground">Mark photos as exclusive (visible only to subscribers).</p>
+            <div className="flex flex-wrap gap-2">
+              {pictures.filter((p) => !p.isProfilePicture).map((pic) => (
+                <div key={pic.id} className="rounded-lg border border-border/50 p-2 flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">Photo</span>
+                  <button
+                    type="button"
+                    onClick={() => setPictureExclusive(pic.id, !pic.isExclusive)}
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${pic.isExclusive ? "gold-gradient text-primary-foreground border-primary/30" : "bg-muted border-border/50 hover:bg-muted/80"}`}
+                  >
+                    {pic.isExclusive ? "Exclusive" : "Public"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Pricing section */}
         <div className="border-t border-border/50 pt-4 mt-2 space-y-4">

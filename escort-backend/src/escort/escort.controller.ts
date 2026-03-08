@@ -4,10 +4,13 @@ import {
   Param,
   ParseUUIDPipe,
   Query,
+  Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { OptionalJwtAuthGuard } from 'src/Guards/optional-jwt.guard';
 import { EscortService } from './escort.service';
 import { GetAllEscortsDto } from './dtos/get-all-escorts.dto';
 import { EscortImageService } from './escortImage.service';
@@ -22,6 +25,11 @@ export class EscortController {
   @Get('all')
   getAllEscorts(@Query() query: GetAllEscortsDto) {
     return this.escortService.getAllEscorts(query);
+  }
+
+  @Get('filters')
+  getFilterOptions() {
+    return this.escortService.getFilterOptions();
   }
 
   @Get('top-viewed')
@@ -53,7 +61,11 @@ export class EscortController {
   }
 
   @Get(':id')
-  getEscortById(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.escortService.getEscortById(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  getEscortById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: { user?: { userId: string } },
+  ) {
+    return this.escortService.getEscortById(id, req.user?.userId);
   }
 }

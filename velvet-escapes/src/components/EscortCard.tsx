@@ -1,18 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Crown, ShieldCheck, MapPin } from "lucide-react";
 import type { EscortListItem } from "@/lib/escorts-api";
-import { buildImageUrl } from "@/lib/api";
+import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
 
 interface EscortCardProps {
   escort: EscortListItem;
   compact?: boolean;
 }
 
-const PLACEHOLDER = "/placeholder.svg";
-
 const EscortCard = ({ escort, compact }: EscortCardProps) => {
-  const image = escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : PLACEHOLDER;
+  const [imgError, setImgError] = useState(false);
+  const image =
+    imgError || !escort.profilePicture
+      ? PLACEHOLDER_THUMBNAIL
+      : buildImageUrl(escort.profilePicture.picturePath);
 
   return (
     <Link
@@ -25,6 +28,7 @@ const EscortCard = ({ escort, compact }: EscortCardProps) => {
           alt={escort.username}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={() => setImgError(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
 

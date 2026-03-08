@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Crown, Check, DollarSign } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, type EscortProfile as AuthEscortProfile } from "@/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
 interface BecomeEscortModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onComplete?: () => void;
 }
 
 const SERVICES = ["DINNER", "EVENT", "TRAVEL", "CITY_GUIDE", "BUSINESS_EVENT"];
@@ -20,15 +21,23 @@ const ETHNICITIES = ["EUROPEAN", "ASIAN", "LATIN", "MIXED", "OTHER"];
 const GENDERS = ["FEMALE", "MALE", "OTHER"];
 const LANGUAGES = ["EN", "KA", "RU", "TR", "DE"];
 
-const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
+const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModalProps) => {
   const { setEscortProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [profile, setProfile] = useState({
-    username: "", city: "", address: "", services: [] as string[],
-    height: "", weight: "", ethnicity: "", gender: "", languages: [] as string[],
+    username: "",
+    city: "",
+    address: "",
+    phoneNumber: "",
+    services: [] as string[],
+    height: "",
+    weight: "",
+    ethnicity: "",
+    gender: "",
+    languages: [] as string[],
   });
 
   const [inCall, setInCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
@@ -41,18 +50,40 @@ const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
   const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!profile.username || !profile.city || !profile.gender || !profile.ethnicity) {
-      setError("Please fill all required fields.");
+    if (!profile.username || !profile.city || !profile.gender || !profile.ethnicity || !profile.phoneNumber?.trim()) {
+      setError("Please fill all required fields (username, city, gender, ethnicity, phone).");
       return;
     }
     setLoading(true);
     try {
-      const body = { ...profile, height: Number(profile.height) || 0, weight: Number(profile.weight) || 0 };
-      await apiFetch("/profile/create", { method: "POST", body: JSON.stringify(body) });
-      setEscortProfile(body);
+      const body = {
+        username: String(profile.username).trim(),
+        city: String(profile.city).trim(),
+        address: String(profile.address ?? "").trim(),
+        phoneNumber: String(profile.phoneNumber).trim(),
+        services: Array.isArray(profile.services) ? profile.services : [],
+        height: profile.height !== "" && profile.height != null ? Number(profile.height) : undefined,
+        weight: profile.weight !== "" && profile.weight != null ? Number(profile.weight) : undefined,
+        ethnicity: String(profile.ethnicity).trim() || undefined,
+        gender: String(profile.gender).trim(),
+        languages: Array.isArray(profile.languages) ? profile.languages : [],
+      };
+      const saved = await apiFetch("/profile/create", { method: "POST", body: JSON.stringify(body) }) as { id: string; username: string; city: string; address: string; height?: number; weight?: number; [k: string]: unknown };
+      setEscortProfile({
+        id: saved.id,
+        username: saved.username,
+        city: saved.city,
+        address: saved.address,
+        services: body.services,
+        height: saved.height ?? (body.height !== undefined && body.height !== "" ? Number(body.height) : 0),
+        weight: saved.weight ?? (body.weight !== undefined && body.weight !== "" ? Number(body.weight) : 0),
+        ethnicity: body.ethnicity,
+        gender: body.gender,
+        languages: body.languages,
+      } as AuthEscortProfile);
       setStep(2);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -73,8 +104,8 @@ const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
         await apiFetch("/profile/prices", { method: "POST", body: JSON.stringify(body) });
       }
       setCompleted(true);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -83,7 +114,7 @@ const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
   const handleClose = (val: boolean) => {
     if (!val) {
       setStep(1);
-      setProfile({ username: "", city: "", address: "", services: [], height: "", weight: "", ethnicity: "", gender: "", languages: [] });
+      setProfile({ username: "", city: "", address: "", phoneNumber: "", services: [], height: "", weight: "", ethnicity: "", gender: "", languages: [] });
       setInCall({ price30min: "", price1hour: "", priceWholeNight: "" });
       setOutCall({ price30min: "", price1hour: "", priceWholeNight: "" });
       setError("");
@@ -119,7 +150,7 @@ const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
             </div>
             <p className="text-foreground font-display text-lg">Profile Created Successfully!</p>
             <p className="text-sm text-muted-foreground">Your escort profile is now live.</p>
-            <Button onClick={() => handleClose(false)} className="gold-gradient font-semibold">Done</Button>
+            <Button onClick={() => { handleClose(false); onComplete?.(); }} className="gold-gradient font-semibold">Done</Button>
           </div>
         ) : step === 1 ? (
           <form onSubmit={handleCreateProfile} className="space-y-4">
@@ -136,6 +167,10 @@ const BecomeEscortModal = ({ open, onOpenChange }: BecomeEscortModalProps) => {
             <div className="space-y-1.5">
               <Label className="text-xs">Address</Label>
               <Input value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} placeholder="Vake district" className="bg-background border-border/50 h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Phone number *</Label>
+              <Input type="tel" value={profile.phoneNumber} onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })} placeholder="+995599123456" className="bg-background border-border/50 h-9 text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

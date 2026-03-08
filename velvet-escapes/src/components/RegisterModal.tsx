@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ interface RegisterModalProps {
 }
 
 const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalProps) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ email: "", phoneNumber: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +24,7 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
     e.preventDefault();
     setError("");
     if (!form.email || !form.password) {
-      setError("Email and password are required.");
+      setError(t("auth.emailPasswordRequired"));
       return;
     }
     setLoading(true);
@@ -32,8 +34,8 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
         body: JSON.stringify(form),
       });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("auth.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -53,43 +55,43 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
       <DialogContent className="bg-card border-border/50 sm:max-w-md">
         <DialogHeader className="items-center">
           <Crown className="h-8 w-8 text-primary mb-2" />
-          <DialogTitle className="font-display text-2xl gold-text">Create Account</DialogTitle>
+          <DialogTitle className="font-display text-2xl gold-text">{t("auth.createAccount")}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Join the premier companion marketplace
+            {t("auth.joinHint")}
           </DialogDescription>
         </DialogHeader>
 
         {success ? (
           <div className="text-center py-4">
-            <p className="text-foreground font-medium mb-4">Registration successful!</p>
+            <p className="text-foreground font-medium mb-4">{t("auth.registerSuccess")}</p>
             <Button onClick={() => { handleClose(false); onSwitchToLogin(); }} className="gold-gradient font-semibold">
-              Login Now
+              {t("auth.loginNow")}
             </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reg-email">Email</Label>
-              <Input id="reg-email" type="email" placeholder="your@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-background border-border/50" />
+              <Label htmlFor="reg-email">{t("auth.email")}</Label>
+              <Input id="reg-email" type="email" placeholder={t("auth.emailPlaceholder")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-background border-border/50" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reg-phone">Phone Number</Label>
-              <Input id="reg-phone" type="tel" placeholder="+1 234 567 890" value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} className="bg-background border-border/50" />
+              <Label htmlFor="reg-phone">{t("auth.phoneNumber")}</Label>
+              <Input id="reg-phone" type="tel" placeholder={t("auth.phonePlaceholder")} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} className="bg-background border-border/50" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reg-password">Password</Label>
-              <Input id="reg-password" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="bg-background border-border/50" />
+              <Label htmlFor="reg-password">{t("auth.password")}</Label>
+              <Input id="reg-password" type="password" placeholder={t("auth.passwordPlaceholder")} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="bg-background border-border/50" />
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" disabled={loading} className="w-full gold-gradient font-semibold">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Register"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("header.register")}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <button type="button" onClick={() => { handleClose(false); onSwitchToLogin(); }} className="text-primary hover:underline">Login</button>
+              {t("auth.alreadyHaveAccount")}{" "}
+              <button type="button" onClick={() => { handleClose(false); onSwitchToLogin(); }} className="text-primary hover:underline">{t("header.login")}</button>
             </p>
           </form>
         )}

@@ -2,6 +2,7 @@ import {
   IsArray,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -62,4 +63,9 @@ export class UpdateEscortProfileDto {
   @IsArray()
   @IsEnum(Language, { each: true })
   languages?: Language[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  subscriptionPriceGel?: number;
 }

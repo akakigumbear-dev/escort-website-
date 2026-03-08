@@ -18,6 +18,7 @@ import {
 } from 'database/enums/enums';
 import { EscortPrices } from './escort-price.entity';
 import { EscortPicture } from './escort-picture.entity';
+import { EscortSubscriberPhoto } from './escort-subscriber-photo.entity';
 import { EscortReview } from './escort-review.entity';
 
 @Entity('escort_profiles')
@@ -40,17 +41,20 @@ export class EscortProfile {
   })
   pictures!: EscortPicture[];
 
+  @OneToMany(() => EscortSubscriberPhoto, (sp) => sp.profile, { cascade: true })
+  subscriberPhotos!: EscortSubscriberPhoto[];
+
   @OneToMany(() => EscortReview, (review) => review.profile)
   reviews!: EscortReview[];
 
   @Column({ unique: true })
   phoneNumber!: string;
 
-  @Index({ unique: true })
+  @Index('IDX_escort_profiles_username', { unique: true })
   @Column({ unique: true })
   username!: string;
 
-  @Index()
+  @Index('IDX_escort_profiles_city')
   @Column()
   city!: string;
 
@@ -98,19 +102,23 @@ export class EscortProfile {
   // --- NEW FIELDS ---
 
   // რამდენი ვიზიტორი/ნახვა ჰქონდა პროფილს (საერთო count)
-  @Index()
+  @Index('IDX_escort_profiles_viewCount')
   @Column({ type: 'int', default: 0 })
   viewCount!: number;
 
   // ვერიფიცირებულია თუ არა (badge)
-  @Index()
+  @Index('IDX_escort_profiles_isVerified')
   @Column({ type: 'boolean', default: false })
   isVerified!: boolean;
 
   // VIP შეძენილია თუ არა: vipUntil > now()
-  @Index()
+  @Index('IDX_escort_profiles_vipUntil')
   @Column({ type: 'timestamptz', nullable: true })
   vipUntil?: Date | null;
+
+  // Subscription price in GEL (for VIP profiles). Null = not set / not VIP.
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  subscriptionPriceGel?: number | null;
 
   // (სასურველია) audit timestamps
   @CreateDateColumn({ type: 'timestamptz' })

@@ -21,6 +21,7 @@ export interface EscortPicture {
   id: string;
   picturePath: string;
   isProfilePicture: boolean;
+  isExclusive?: boolean;
   createdAt: string;
 }
 
@@ -51,6 +52,10 @@ export interface EscortDetail {
   updatedAt: string;
   profilePicture: { id: string; picturePath: string } | null;
   pictures: EscortPicture[];
+  exclusiveMediaCount?: number;
+  subscribed?: boolean;
+  subscriptionPriceGel?: number | null;
+  ownerUserId?: string | null;
   reviews: unknown[];
   reviewsCount: number;
   averageRating: number;
@@ -68,6 +73,16 @@ export interface PaginatedResponse {
 export async function fetchAllEscorts(filters?: EscortFilters): Promise<PaginatedResponse> {
   const qs = filters ? buildFilterParams(filters) : "";
   return apiFetch(`/escort/all${qs ? `?${qs}` : ""}`);
+}
+
+export interface FilterOptions {
+  cities: string[];
+  genders: string[];
+  ethnicities: string[];
+}
+
+export async function fetchFilterOptions(): Promise<FilterOptions> {
+  return apiFetch("/escort/filters");
 }
 
 export async function fetchVipEscorts(): Promise<EscortListItem[]> {

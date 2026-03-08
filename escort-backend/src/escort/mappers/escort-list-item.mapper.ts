@@ -20,7 +20,7 @@ export function mapEscortListItem(profile: EscortListProfile) {
   const averageRating = reviewsCount
     ? Number(
         (
-          profile.reviews!.reduce((sum, review) => sum + review.rating, 0) /
+          profile.reviews.reduce((sum, review) => sum + review.rating, 0) /
           reviewsCount
         ).toFixed(1),
       )

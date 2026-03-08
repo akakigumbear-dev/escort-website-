@@ -33,6 +33,7 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
       id: picture.id,
       picturePath: picture.picturePath,
       isProfilePicture: picture.isProfilePicture,
+      isExclusive: !!(picture as any).isExclusive,
       createdAt: picture.createdAt,
     })) ?? [];
 
@@ -54,8 +55,15 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
       )
     : 0;
 
+  const exclusiveMediaCount = (profile as any).exclusiveMediaCount ?? 0;
+
+  const ownerUserId =
+    (profile as any).ownerUserId ?? (profile as any).user?.id ?? null;
+  const subscriptionPriceGel = (profile as any).subscriptionPriceGel ?? null;
+
   return {
     id: profile.id,
+    ownerUserId,
     phoneNumber: profile.phoneNumber,
     username: profile.username,
     city: profile.city,
@@ -89,6 +97,10 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
     reviewsCount,
     averageRating,
 
+    exclusiveMediaCount,
+    subscribed: (profile as any).subscribed ?? false,
+    subscriptionPriceGel:
+      subscriptionPriceGel != null ? Number(subscriptionPriceGel) : null,
     prices: {
       inCall: inCall
         ? {

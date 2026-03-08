@@ -6,6 +6,7 @@ import { EscortPrices } from 'database/entities/escort-price.entity';
 import { EscortProfile } from 'database/entities/escort-profile.entity';
 import { User } from 'database/entities/user.entity';
 import { EscortPicture } from 'database/entities/escort-picture.entity';
+import { EscortSubscriberPhoto } from 'database/entities/escort-subscriber-photo.entity';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EscortPicture } from 'database/entities/escort-picture.entity';
       EscortPrices,
       User,
       EscortPicture,
+      EscortSubscriberPhoto,
     ]),
   ],
 
