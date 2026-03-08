@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 6%;
+    --foreground: 40 20% 92%;
+
+    --card: 240 8% 10%;
+    --card-foreground: 40 20% 92%;
+
+    --popover: 240 8% 10%;
+    --popover-foreground: 40 20% 92%;
+
+    --primary: 40 70% 50%;
+    --primary-foreground: 240 10% 6%;
+
+    --secondary: 240 6% 16%;
+    --secondary-foreground: 40 20% 85%;
+
+    --muted: 240 6% 14%;
+    --muted-foreground: 240 5% 55%;
+
+    --accent: 40 70% 50%;
+    --accent-foreground: 240 10% 6%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 40 70% 50%;
+
+    --radius: 0.75rem;
+
+    --gold: 40 70% 50%;
+    --gold-light: 40 80% 65%;
+    --gold-dark: 40 60% 35%;
+    --surface: 240 8% 12%;
+    --surface-hover: 240 8% 15%;
+
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 40 70% 50%;
+    --sidebar-primary-foreground: 240 10% 6%;
+    --sidebar-accent: 240 6% 16%;
+    --sidebar-accent-foreground: 40 20% 92%;
+    --sidebar-border: 240 6% 18%;
+    --sidebar-ring: 40 70% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(var(--gold-dark)), hsl(var(--gold)), hsl(var(--gold-light)));
+  }
+
+  .gold-text {
+    background: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-light)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .card-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, hsl(var(--gold) / 0.05) 50%, transparent 60%);
+    pointer-events: none;
+  }
+}
