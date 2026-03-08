@@ -9,11 +9,12 @@ node scraper.js
 
 const fs = require("fs/promises");
 const path = require("path");
-const { Builder, By, until } = require("selenium-webdriver");
+const { Builder, By } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 
 const SITE_URL = "https://eskorti.ge/";
 const OUTPUT_FILE = path.join(__dirname, "models.json");
+const IMAGES_DIR = path.join(__dirname, "images");
 
 const RETRY_INTERVAL_MS = 3000;
 const PAGE_LOAD_WAIT_MS = 15000;
@@ -24,6 +25,33 @@ const BETWEEN_PAGES_MS = 2000;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function sanitizeFileName(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "unknown";
+}
+
+function getExtensionFromUrl(url) {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    const ext = path.extname(pathname);
+    if (ext && ext.length <= 5) return ext;
+  } catch {}
+  return ".jpg";
+}
+
+async function ensureDir(dirPath) {
+  await fs.mkdir(dirPath, { recursive: true });
 }
 
 async function ensureJsonFile() {
@@ -48,16 +76,13 @@ async function readJsonArray() {
   }
 }
 
-function normalizeText(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
 async function appendRecord(record) {
   const data = await readJsonArray();
 
   const exists = data.some((item) => {
     const sameUrl =
-      normalizeText(item.url) && normalizeText(item.url) === normalizeText(record.url);
+      normalizeText(item.url) &&
+      normalizeText(item.url) === normalizeText(record.url);
 
     const samePhone =
       normalizeText(item["ტელეფონი"]) &&
@@ -86,18 +111,15 @@ async function appendRecord(record) {
 async function buildDriver() {
   const options = new chrome.Options();
 
-  // Visible browser only
   options.addArguments("--start-maximized");
   options.addArguments("--disable-blink-features=AutomationControlled");
   options.addArguments("--no-sandbox");
   options.addArguments("--disable-dev-shm-usage");
 
-  const driver = await new Builder()
+  return await new Builder()
     .forBrowser("chrome")
     .setChromeOptions(options)
     .build();
-
-  return driver;
 }
 
 async function safeFindElement(driver, locator) {
@@ -118,9 +140,7 @@ async function waitUntilPageReady(driver, timeoutMs = PAGE_LOAD_WAIT_MS) {
       timeoutMs,
       "Document readyState did not become complete in time"
     );
-  } catch {
-    // continue anyway
-  }
+  } catch {}
 }
 
 async function waitAndClickAgeModal(driver) {
@@ -149,8 +169,7 @@ async function waitAndClickAgeModal(driver) {
 
 async function waitForModelsIndefinitely(driver) {
   console.log("Waiting indefinitely for div.models...");
-  console.log("If site is blocked or captcha appears, solve it manually in the browser.");
-  console.log("Script will continue automatically when div.models becomes available.");
+  console.log("If captcha or protection appears, solve it manually in the browser.");
 
   while (true) {
     try {
@@ -184,9 +203,7 @@ async function collectModelLinks(driver) {
       try {
         const a = await items[i].findElement(By.css("a[href]"));
         href = await a.getAttribute("href");
-      } catch {
-        // fallback below
-      }
+      } catch {}
 
       if (!href) {
         href = await driver.executeScript(
@@ -243,12 +260,12 @@ async function closeCurrentTabAndReturn(driver, mainHandle) {
 }
 
 async function extractEscortProfile(driver) {
-  const data = await driver.executeScript(() => {
-    const clean = (value) => (value ? String(value).replace(/\s+/g, " ").trim() : "");
+  return await driver.executeScript(() => {
+    const clean = (value) =>
+      value ? String(value).replace(/\s+/g, " ").trim() : "";
 
     const findValue = (label) => {
       const nodes = [...document.querySelectorAll(".profile-info-container div")];
-
       for (const node of nodes) {
         const text = clean(node.innerText);
         if (text.includes(label)) {
@@ -256,13 +273,11 @@ async function extractEscortProfile(driver) {
           return strong ? clean(strong.innerText) : "";
         }
       }
-
       return "";
     };
 
     const findParam = (label) => {
       const nodes = [...document.querySelectorAll(".profile-params div")];
-
       for (const node of nodes) {
         const span = node.querySelector("span");
         if (span && clean(span.innerText).includes(label)) {
@@ -270,7 +285,6 @@ async function extractEscortProfile(driver) {
           return strong ? clean(strong.innerText) : "";
         }
       }
-
       return "";
     };
 
@@ -298,20 +312,27 @@ async function extractEscortProfile(driver) {
     const phoneEl = document.querySelector(".phone a");
     const phone = phoneEl ? clean(phoneEl.innerText) : "";
 
-    const imageLinks = [
+    const galleryItems = [
       ...document.querySelectorAll('.profile-images a[data-fancybox="gallery"]'),
     ];
 
-    const images = imageLinks
-      .map((a) => {
-        const href = a.getAttribute("href");
-        if (!href) return null;
+    const images = galleryItems
+      .flatMap((a) => {
+        const img = a.querySelector("img");
+        const candidates = [
+          a.getAttribute("href"),
+          img?.getAttribute("src"),
+          img?.getAttribute("data-src"),
+          img?.getAttribute("data-lazy"),
+        ].filter(Boolean);
 
-        try {
-          return new URL(href, window.location.href).href;
-        } catch {
-          return null;
-        }
+        return candidates.map((candidate) => {
+          try {
+            return new URL(candidate, window.location.href).href;
+          } catch {
+            return null;
+          }
+        });
       })
       .filter(Boolean);
 
@@ -330,8 +351,97 @@ async function extractEscortProfile(driver) {
       "სურათები": uniqueImages,
     };
   });
+}
 
-  return data;
+async function saveImageFromBrowserContext(driver, imageUrl, folderName, index) {
+  await ensureDir(IMAGES_DIR);
+
+  const safeFolderName = sanitizeFileName(folderName);
+  const targetDir = path.join(IMAGES_DIR, safeFolderName);
+  await ensureDir(targetDir);
+
+  const ext = getExtensionFromUrl(imageUrl);
+  const fileName = `image-${index}${ext}`;
+  const absolutePath = path.join(targetDir, fileName);
+
+  try {
+    const result = await driver.executeScript(async (targetUrl) => {
+      try {
+        const response = await fetch(targetUrl, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return { ok: false, error: `HTTP ${response.status}` };
+        }
+
+        const blob = await response.blob();
+
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onloadend = () => {
+            const res = String(reader.result || "");
+            const idx = res.indexOf(",");
+            resolve(idx >= 0 ? res.slice(idx + 1) : res);
+          };
+
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        return { ok: true, base64 };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err && err.message ? err.message : String(err),
+        };
+      }
+    }, imageUrl);
+
+    if (!result?.ok || !result?.base64) {
+      throw new Error(result?.error || "Unknown browser fetch error");
+    }
+
+    await fs.writeFile(absolutePath, Buffer.from(result.base64, "base64"));
+    return path.relative(__dirname, absolutePath);
+  } catch (err) {
+    console.log(`Failed to save image: ${imageUrl} -> ${err.message}`);
+    return null;
+  }
+}
+
+async function downloadProfileImages(driver, profile, imageUrls) {
+  if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+    return [];
+  }
+
+  const folderName =
+    profile["სახელი"] ||
+    profile["ტელეფონი"] ||
+    profile.url ||
+    `profile-${Date.now()}`;
+
+  const savedPaths = [];
+
+  for (let i = 0; i < imageUrls.length; i++) {
+    const imageUrl = imageUrls[i];
+    if (!imageUrl) continue;
+
+    const savedPath = await saveImageFromBrowserContext(
+      driver,
+      imageUrl,
+      folderName,
+      i + 1
+    );
+
+    if (savedPath) {
+      savedPaths.push(savedPath);
+    }
+  }
+
+  return savedPaths;
 }
 
 async function processSingleModel(driver, mainHandle, url, index, total) {
@@ -347,17 +457,22 @@ async function processSingleModel(driver, mainHandle, url, index, total) {
 
     const profile = await extractEscortProfile(driver);
 
+    const localImages = await downloadProfileImages(
+      driver,
+      { ...profile, url },
+      profile["სურათები"]
+    );
+
     const finalRecord = {
       ...profile,
+      "სურათები": localImages,
       url,
       scrapedAt: new Date().toISOString(),
     };
 
     await appendRecord(finalRecord);
 
-    console.log(
-      `[${index}/${total}] Done: ${finalRecord["სახელი"] || "Unknown"}`
-    );
+    console.log(`[${index}/${total}] Done: ${finalRecord["სახელი"] || "Unknown"}`);
   } catch (err) {
     console.error(`[${index}/${total}] Failed: ${url}`);
     console.error(err.message);
@@ -379,8 +494,7 @@ async function processSingleModel(driver, mainHandle, url, index, total) {
 
 async function getCurrentPageKey(driver) {
   try {
-    const url = await driver.getCurrentUrl();
-    return url;
+    return await driver.getCurrentUrl();
   } catch {
     return `page-${Date.now()}`;
   }
@@ -406,8 +520,8 @@ async function findNextPageElement(driver) {
     } catch {}
   }
 
-  // ტექსტით ძებნაც დავამატოთ
   const links = await driver.findElements(By.css("a"));
+
   for (const link of links) {
     try {
       const text = (await link.getText()).trim().toLowerCase();
@@ -422,9 +536,7 @@ async function findNextPageElement(driver) {
         cls.includes("next")
       ) {
         const displayed = await link.isDisplayed().catch(() => true);
-        if (displayed && href) {
-          return link;
-        }
+        if (displayed && href) return link;
       }
     } catch {}
   }
@@ -434,10 +546,7 @@ async function findNextPageElement(driver) {
 
 async function goToNextPage(driver, previousPageKey) {
   const nextEl = await findNextPageElement(driver);
-
-  if (!nextEl) {
-    return false;
-  }
+  if (!nextEl) return false;
 
   console.log("Trying to open next page...");
 
@@ -447,7 +556,10 @@ async function goToNextPage(driver, previousPageKey) {
   } catch {}
 
   try {
-    await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", nextEl);
+    await driver.executeScript(
+      "arguments[0].scrollIntoView({block:'center'});",
+      nextEl
+    );
     await sleep(500);
     await driver.executeScript("arguments[0].click();", nextEl);
   } catch (err) {
@@ -463,7 +575,6 @@ async function goToNextPage(driver, previousPageKey) {
   await waitUntilPageReady(driver);
   await sleep(BETWEEN_PAGES_MS);
 
-  // თუ უცვლელია გვერდი, direct url-ითაც ვცადოთ
   let currentPageKey = await getCurrentPageKey(driver);
 
   if (currentPageKey === previousPageKey && nextHref) {
@@ -473,7 +584,6 @@ async function goToNextPage(driver, previousPageKey) {
     currentPageKey = await getCurrentPageKey(driver);
   }
 
-  // შემდეგ გვერდზეც ისევ დაველოდოთ models-ს
   await waitForModelsIndefinitely(driver);
 
   if (currentPageKey === previousPageKey) {
@@ -512,7 +622,6 @@ async function main() {
       processedPageKeys.add(pageKey);
 
       console.log(`\nProcessing page: ${pageKey}\n`);
-
       await sleep(1500);
 
       const modelLinks = await collectModelLinks(driver);
@@ -541,6 +650,8 @@ async function main() {
     console.log(`Saved file: ${OUTPUT_FILE}`);
   } catch (err) {
     console.error("Fatal error:", err);
+  } finally {
+    // await driver.quit();
   }
 }
 
