@@ -59,7 +59,7 @@ async getAllEscorts(query: GetAllEscortsDto) {
 
 async getTopViewedEscorts() {
   const profiles = await this.escortProfileRepo.find({
-    relations: { pictures: true, reviews: true },
+    relations: { pictures: true },
     order: {
       viewCount: 'DESC',
     },
