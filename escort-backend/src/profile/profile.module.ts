@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EscortPrices } from 'database/entities/escort-price.entity';
 import { EscortProfile } from 'database/entities/escort-profile.entity';
 import { User } from 'database/entities/user.entity';
+import { EscortPicture } from 'database/entities/escort-picture.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EscortProfile, EscortPrices, User]),],
+  imports: [TypeOrmModule.forFeature([EscortProfile, EscortPrices, User,EscortPicture]),],
 
   controllers: [ProfileController],
   providers: [ProfileService],

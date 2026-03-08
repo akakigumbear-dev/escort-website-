@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { User } from './entities/user.entity';
 import { EscortProfile } from './entities/escort-profile.entity';
 import { EscortPrices } from './entities/escort-price.entity';
+import { EscortPicture } from './entities/escort-picture.entity';
+import { EscortReview } from './entities/escort-review.entity';
 
 @Module({})
 export class DatabaseModule {
@@ -22,8 +24,8 @@ export class DatabaseModule {
             username: config.get<string>('DB_USER', 'nestuser'),
             password: config.get<string>('DB_PASS', 'nestpass'),
             database: config.get<string>('DB_NAME', 'nestdb'), 
-            entities: [User, EscortProfile, EscortPrices],
-            synchronize: false,
+            entities: [User, EscortProfile, EscortPrices, EscortPicture, EscortReview],
+            synchronize: true,
             logging: false,
             retryAttempts: 5,
             retryDelay: 5000,
