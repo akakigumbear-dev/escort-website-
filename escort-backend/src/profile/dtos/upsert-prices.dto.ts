@@ -1,4 +1,12 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { ServiceLocation } from 'database/enums/enums';
 export class UpsertPricesDto {
   @IsEnum(ServiceLocation)
@@ -18,5 +26,4 @@ export class UpsertPricesDto {
   @IsInt()
   @Min(0)
   priceWholeNight?: number | null;
-
 }

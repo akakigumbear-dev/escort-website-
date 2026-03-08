@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EscortPrices } from 'database/entities/escort-price.entity';
 import { EscortProfile } from 'database/entities/escort-profile.entity';
@@ -11,22 +16,27 @@ import { EscortPicture } from 'database/entities/escort-picture.entity';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 
-
 @Injectable()
 export class ProfileService {
   constructor(
-    @InjectRepository(EscortProfile) private readonly profiles: Repository<EscortProfile>,
-    @InjectRepository(EscortPrices) private readonly prices: Repository<EscortPrices>,
+    @InjectRepository(EscortProfile)
+    private readonly profiles: Repository<EscortProfile>,
+    @InjectRepository(EscortPrices)
+    private readonly prices: Repository<EscortPrices>,
     @InjectRepository(User) private readonly users: Repository<User>,
-        @InjectRepository(EscortPicture)
+    @InjectRepository(EscortPicture)
     private readonly escortPictureRepo: Repository<EscortPicture>,
   ) {}
 
   async createEscortProfile(userId: string, dto: CreateEscortProfileDto) {
-    const exists = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const exists = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (exists) throw new BadRequestException('Escort profile already exists');
 
-    const usernameTaken = await this.profiles.findOne({ where: { username: dto.username } });
+    const usernameTaken = await this.profiles.findOne({
+      where: { username: dto.username },
+    });
     if (usernameTaken) throw new BadRequestException('Username already taken');
 
     const user = await this.users.findOne({ where: { id: userId } });
@@ -55,7 +65,9 @@ export class ProfileService {
   }
 
   async editEscortProfile(userId: string, dto: UpdateEscortProfileDto) {
-    const profile = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
     Object.assign(profile, dto);
@@ -63,7 +75,9 @@ export class ProfileService {
   }
 
   async activateEscortProfile(userId: string) {
-    const profile = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
     profile.isVerified = true; // თუ “activate” შენს ლოგიკაში სხვა რამეა, აქ შეცვალე
@@ -71,11 +85,14 @@ export class ProfileService {
   }
 
   async purchaseVipProfile(userId: string, dto: any) {
-    const profile = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
     const now = new Date();
-    const base = profile.vipUntil && profile.vipUntil > now ? profile.vipUntil : now;
+    const base =
+      profile.vipUntil && profile.vipUntil > now ? profile.vipUntil : now;
     const vipUntil = new Date(base.getTime() + dto.days * 24 * 60 * 60 * 1000);
 
     profile.vipUntil = vipUntil;
@@ -83,12 +100,17 @@ export class ProfileService {
   }
 
   async upsertPrices(userId: string, dto: UpsertPricesDto) {
-    const profile = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
     // Unique(['profile','serviceLocation']) - ამიტომ upsert by serviceLocation
     let row = await this.prices.findOne({
-      where: { profile: { id: profile.id }, serviceLocation: dto.serviceLocation } as any,
+      where: {
+        profile: { id: profile.id },
+        serviceLocation: dto.serviceLocation,
+      } as any,
     });
 
     if (!row) {
@@ -111,7 +133,9 @@ export class ProfileService {
   }
 
   async editPrices(userId: string, priceId: string, dto: any) {
-    const profile = await this.profiles.findOne({ where: { user: { id: userId } } as any });
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } } as any,
+    });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
     const row = await this.prices.findOne({
@@ -120,13 +144,14 @@ export class ProfileService {
     });
     if (!row) throw new NotFoundException('Price row not found');
 
-    if (row.profile.id !== profile.id) throw new ForbiddenException('Not your price row');
+    if (row.profile.id !== profile.id)
+      throw new ForbiddenException('Not your price row');
 
     Object.assign(row, dto);
     return this.prices.save(row);
   }
 
-    async uploadPictures(userId: string, files: Express.Multer.File[]) {
+  async uploadPictures(userId: string, files: Express.Multer.File[]) {
     const profile = await this.profiles.findOne({
       where: { user: { id: userId } as any },
       relations: { pictures: true },
@@ -165,46 +190,48 @@ export class ProfileService {
   }
 
   async deletePicture(userId: string, pictureId: string) {
-
-  const profile = await this.profiles.findOne({
-    where: { user: { id: userId } as any },
-    relations: { pictures: true },
-  });
-
-  if (!profile) {
-    throw new NotFoundException('Escort profile not found');
-  }
-
-  const picture = profile.pictures.find((item) => item.id === pictureId);
-
-  if (!picture) {
-    throw new NotFoundException('Picture not found');
-  }
-
-  await this.escortPictureRepo.remove(picture);
-
-  const filePath = join(process.cwd(), picture.picturePath.replace(/^\//, ''));
-
-  try {
-    await unlink(filePath);
-  } catch {
-    // ignore
-  }
-
-  if (picture.isProfilePicture) {
-    const nextPicture = await this.escortPictureRepo.findOne({
-      where: { profileId: profile.id },
-      order: { createdAt: 'ASC' },
+    const profile = await this.profiles.findOne({
+      where: { user: { id: userId } as any },
+      relations: { pictures: true },
     });
 
-    if (nextPicture) {
-      nextPicture.isProfilePicture = true;
-      await this.escortPictureRepo.save(nextPicture);
+    if (!profile) {
+      throw new NotFoundException('Escort profile not found');
     }
-  }
 
-  return { ok: true };
-}
+    const picture = profile.pictures.find((item) => item.id === pictureId);
+
+    if (!picture) {
+      throw new NotFoundException('Picture not found');
+    }
+
+    await this.escortPictureRepo.remove(picture);
+
+    const filePath = join(
+      process.cwd(),
+      picture.picturePath.replace(/^\//, ''),
+    );
+
+    try {
+      await unlink(filePath);
+    } catch {
+      // ignore
+    }
+
+    if (picture.isProfilePicture) {
+      const nextPicture = await this.escortPictureRepo.findOne({
+        where: { profileId: profile.id },
+        order: { createdAt: 'ASC' },
+      });
+
+      if (nextPicture) {
+        nextPicture.isProfilePicture = true;
+        await this.escortPictureRepo.save(nextPicture);
+      }
+    }
+
+    return { ok: true };
+  }
 
   async setProfilePicture(userId: string, pictureId: string) {
     const profile = await this.profiles.findOne({

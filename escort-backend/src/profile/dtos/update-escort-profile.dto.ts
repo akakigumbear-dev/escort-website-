@@ -1,7 +1,30 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
-import { EscortService, Ethnicity, Gender, Language } from 'database/enums/enums';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import {
+  EscortService,
+  Ethnicity,
+  Gender,
+  Language,
+} from 'database/enums/enums';
 
 export class UpdateEscortProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bio?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serviceItems?: string[];
+
   @IsOptional()
   @IsString()
   @MaxLength(60)

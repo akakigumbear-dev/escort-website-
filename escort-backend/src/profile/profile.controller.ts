@@ -1,4 +1,17 @@
-import { Body, Controller, Get, Patch, Post, Param, Req, UseGuards, Delete, ParseUUIDPipe, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Param,
+  Req,
+  UseGuards,
+  Delete,
+  ParseUUIDPipe,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from 'src/Guards/jwt.guard';
 import { CreateEscortProfileDto } from './dtos/create-escort-profile.dto';
@@ -46,13 +59,18 @@ export class ProfileController {
   }
 
   @Patch('prices/:id')
-  editPrices(@Req() req: any, @Param('id') id: string, @Body() dto: UpdatePricesDto) {
+  editPrices(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdatePricesDto,
+  ) {
     return this.escort.editPrices(req.user.userId, id, dto);
   }
 
-
-    @Post('pictures/upload')
-  @UseInterceptors(FilesInterceptor('pictures', 20, escortPicturesMulterOptions))
+  @Post('pictures/upload')
+  @UseInterceptors(
+    FilesInterceptor('pictures', 20, escortPicturesMulterOptions),
+  )
   uploadPictures(
     @Req() req: any,
     @UploadedFiles() files: Express.Multer.File[],

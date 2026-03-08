@@ -19,6 +19,12 @@ export enum Ethnicity {
   MIDDLE_EASTERN = 'MIDDLE_EASTERN',
   MIXED = 'MIXED',
   OTHER = 'OTHER',
+  // From scraped data (country codes)
+  GE = 'GE', // Georgia
+  UA = 'UA', // Ukraine
+  RU = 'RU', // Russia
+  TR = 'TR', // Turkey
+  AZ = 'AZ', // Azerbaijan
 }
 
 export enum Language {
@@ -27,6 +33,8 @@ export enum Language {
   RU = 'RU',
   ES = 'ES',
   FR = 'FR',
+  TR = 'TR', // Türkçe
+  UK = 'UK', // Українська (Ukrainian)
 }
 
 export enum ServiceLocation {

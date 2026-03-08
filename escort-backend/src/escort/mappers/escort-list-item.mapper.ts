@@ -30,6 +30,7 @@ export function mapEscortListItem(profile: EscortListProfile) {
     id: profile.id,
     username: profile.username,
     city: profile.city,
+    bio: profile.bio ?? null,
     ethnicity: profile.ethnicity,
     gender: profile.gender,
     viewCount: profile.viewCount,

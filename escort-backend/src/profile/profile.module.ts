@@ -8,7 +8,14 @@ import { User } from 'database/entities/user.entity';
 import { EscortPicture } from 'database/entities/escort-picture.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EscortProfile, EscortPrices, User,EscortPicture]),],
+  imports: [
+    TypeOrmModule.forFeature([
+      EscortProfile,
+      EscortPrices,
+      User,
+      EscortPicture,
+    ]),
+  ],
 
   controllers: [ProfileController],
   providers: [ProfileService],

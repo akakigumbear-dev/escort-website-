@@ -10,7 +10,8 @@ import * as mime from 'mime-types';
 @Injectable()
 export class EscortImageService {
   private readonly projectRoot = process.cwd();
-  private readonly imagesDir = path.resolve(this.projectRoot, 'data', 'images');
+  // Use scrapper/images (sibling to escort-backend) for scraped escort pictures
+  private readonly imagesDir = path.resolve(this.projectRoot, '..', 'scrapper', 'images');
 
   getImageStream(rawPath: string) {
     if (!rawPath || typeof rawPath !== 'string') {

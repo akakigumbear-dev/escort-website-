@@ -5,7 +5,13 @@ import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
 import { EscortModule } from './escort/escort.module';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }),DatabaseModule.forRoot(), AuthModule, ProfileModule, EscortModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule.forRoot(),
+    AuthModule,
+    ProfileModule,
+    EscortModule,
+  ],
   controllers: [],
   providers: [],
 })

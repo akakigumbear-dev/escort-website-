@@ -7,7 +7,7 @@ import { EscortProfile } from 'database/entities/escort-profile.entity';
 import { EscortImageService } from './escortImage.service';
 
 @Module({
-  imports:[ TypeOrmModule.forFeature([EscortProfile, EscortPrices])],
+  imports: [TypeOrmModule.forFeature([EscortProfile, EscortPrices])],
   controllers: [EscortController],
   providers: [EscortService, EscortImageService],
 })

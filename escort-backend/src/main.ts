@@ -10,7 +10,7 @@ async function bootstrap() {
     origin: process.env.CORS_ORIGIN?.split(',') ?? '*',
   });
 
-    app.useGlobalPipes(
+  app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,

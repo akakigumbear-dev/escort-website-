@@ -5,8 +5,6 @@ import { ForgetPasswordDto } from './dtos/forget-password.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/Register.dto';
 
-
-
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
