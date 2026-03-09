@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { join } from 'path';
+import * as fs from 'fs/promises';
 import { SubscriptionPost } from 'database/entities/subscription-post.entity';
 import { PostUpvote } from 'database/entities/post-upvote.entity';
 import { PostComment } from 'database/entities/post-comment.entity';
@@ -31,7 +33,7 @@ export class SubscriptionPostsService {
     userId: string,
     profileId: string,
     content: string | null,
-    mediaPath: string | null,
+    file: Express.Multer.File | null,
     mediaType: string | null,
   ) {
     const profile = await this.profileRepo.findOne({
@@ -42,11 +44,29 @@ export class SubscriptionPostsService {
     if ((profile as any).user?.id !== userId) {
       throw new ForbiddenException('Not your profile');
     }
+
+    let mediaPath: string | null = null;
+    if (file) {
+      const folderName = (profile.username || profile.id).replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80) || profile.id;
+      const uploadsDir = join(process.cwd(), 'uploads');
+      const imagesDir = join(uploadsDir, 'images');
+      const escortDir = join(imagesDir, folderName);
+      await fs.mkdir(escortDir, { recursive: true });
+      const srcPath = join(uploadsDir, '_tmp', file.filename);
+      const destPath = join(escortDir, file.filename);
+      try {
+        await fs.rename(srcPath, destPath);
+      } catch {
+        await fs.copyFile(srcPath, destPath).then(() => fs.unlink(srcPath).catch(() => {}));
+      }
+      mediaPath = `/uploads/images/${folderName}/${file.filename}`;
+    }
+
     const post = this.postRepo.create({
       profileId,
       authorUserId: userId,
       content: content?.trim() || null,
-      mediaPath: mediaPath || null,
+      mediaPath,
       mediaType: mediaType || null,
     });
     return this.postRepo.save(post);

@@ -70,7 +70,6 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
     address: profile.address,
     bio: profile.bio ?? null,
     services: profile.services,
-    serviceItems: profile.serviceItems ?? [],
     height: profile.height,
     weight: profile.weight,
     age: profile.age,

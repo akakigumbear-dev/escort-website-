@@ -22,11 +22,6 @@ export class UpdateEscortProfileDto {
   bio?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  serviceItems?: string[];
-
-  @IsOptional()
   @IsString()
   @MaxLength(60)
   city?: string;
@@ -35,6 +30,16 @@ export class UpdateEscortProfileDto {
   @IsString()
   @MaxLength(200)
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  age?: number;
 
   @IsOptional()
   @IsArray()

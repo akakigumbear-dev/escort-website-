@@ -1,4 +1,8 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+// In production, VITE_API_BASE_URL must be set at build time (e.g. https://api.elitescort.fun).
+// Empty in prod = same-origin. Dev fallback = localhost:3000.
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : "");
 
 export async function apiFetch(path: string, options?: RequestInit) {
   const url = `${API_BASE_URL}${path}`;
@@ -47,12 +51,12 @@ export const PLACEHOLDER_THUMBNAIL =
 
 export function buildImageUrl(picturePath: string): string {
   if (!picturePath) return PLACEHOLDER_THUMBNAIL;
-  // Encode each path segment to handle special characters and emojis
-  const encodedPath = picturePath
+  const cleaned = picturePath.replace(/^\/+/, "");
+  const encodedPath = cleaned
     .split("/")
     .map(encodeURIComponent)
     .join("/");
-  return `${API_BASE_URL}/escort/image/${encodedPath}`;
+  return `${API_BASE_URL}/${encodedPath}`;
 }
 
 export function buildFilterParams(filters: EscortFilters): string {

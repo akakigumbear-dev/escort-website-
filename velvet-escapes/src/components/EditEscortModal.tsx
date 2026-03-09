@@ -14,25 +14,39 @@ interface EditEscortModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const SERVICES = ["DINNER", "EVENT", "TRAVEL", "CITY_GUIDE", "BUSINESS_EVENT"];
-const ETHNICITIES = ["EUROPEAN", "ASIAN", "LATIN", "MIXED", "OTHER"];
-const GENDERS = ["FEMALE", "MALE", "OTHER"];
-const LANGUAGES = ["EN", "KA", "RU", "TR", "DE"];
+interface EnumOptions {
+  services: string[];
+  ethnicities: string[];
+  genders: string[];
+  languages: string[];
+  serviceLocations: string[];
+}
 
 const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
   const { escortProfile, setEscortProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [enums, setEnums] = useState<EnumOptions | null>(null);
 
   const [profile, setProfile] = useState({
-    username: "", city: "", address: "", services: [] as string[],
+    username: "", city: "", address: "", phoneNumber: "", bio: "",
+    age: "", services: [] as string[],
     height: "", weight: "", ethnicity: "", gender: "", languages: [] as string[],
+    subscriptionPriceGel: "",
   });
 
   const [inCall, setInCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
   const [outCall, setOutCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
   const [pictures, setPictures] = useState<Array<{ id: string; picturePath: string; isProfilePicture: boolean; isExclusive?: boolean }>>([]);
+
+  useEffect(() => {
+    if (open && !enums) {
+      apiFetch("/escort/enums")
+        .then((data: EnumOptions) => setEnums(data))
+        .catch(() => {});
+    }
+  }, [open, enums]);
 
   useEffect(() => {
     if (open && escortProfile) {
@@ -43,12 +57,16 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
         username: escortProfile.username || "",
         city: escortProfile.city || "",
         address: escortProfile.address || "",
+        phoneNumber: escortProfile.phoneNumber || "",
+        bio: escortProfile.bio || "",
+        age: String(escortProfile.age || ""),
         services: escortProfile.services || [],
         height: String(escortProfile.height || ""),
         weight: String(escortProfile.weight || ""),
         ethnicity: escortProfile.ethnicity || "",
         gender: escortProfile.gender || "",
         languages: escortProfile.languages || [],
+        subscriptionPriceGel: escortProfile.subscriptionPriceGel != null ? String(escortProfile.subscriptionPriceGel) : "",
       });
       setSuccess(false);
       setError("");
@@ -68,15 +86,18 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
     setLoading(true);
     try {
       const body = {
-        username: String(profile.username).trim(),
         city: String(profile.city).trim(),
         address: String(profile.address ?? "").trim(),
+        phoneNumber: String(profile.phoneNumber ?? "").trim() || undefined,
+        bio: String(profile.bio ?? "").trim() || undefined,
+        age: profile.age !== "" && profile.age != null ? Number(profile.age) : undefined,
         services: Array.isArray(profile.services) ? profile.services : [],
         height: profile.height !== "" && profile.height != null ? Number(profile.height) : undefined,
         weight: profile.weight !== "" && profile.weight != null ? Number(profile.weight) : undefined,
         ethnicity: (profile.ethnicity && String(profile.ethnicity).trim()) || undefined,
         gender: String(profile.gender).trim(),
         languages: Array.isArray(profile.languages) ? profile.languages : [],
+        subscriptionPriceGel: profile.subscriptionPriceGel !== "" ? Number(profile.subscriptionPriceGel) : undefined,
       };
       await apiFetch("/profile/edit", { method: "PATCH", body: JSON.stringify(body) });
       setEscortProfile({ ...escortProfile, ...body, height: body.height ?? 0, weight: body.weight ?? 0 });
@@ -93,7 +114,9 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
     setError("");
     setLoading(true);
     try {
-      for (const [loc, prices] of [["IN_CALL", inCall], ["OUT_CALL", outCall]] as const) {
+      const inLoc = enums?.serviceLocations?.[0] || "ჩემთან";
+      const outLoc = enums?.serviceLocations?.[1] || "გამოძახებით";
+      for (const [loc, prices] of [[inLoc, inCall], [outLoc, outCall]] as const) {
         const body = {
           serviceLocation: loc,
           price30min: Number(prices.price30min) || 0,
@@ -146,35 +169,45 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Username *</Label>
-              <Input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
+              <Label className="text-xs">Username</Label>
+              <Input value={profile.username} readOnly disabled className="bg-background border-border/50 h-9 text-sm opacity-60" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">City *</Label>
               <Input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Address</Label>
+              <Input value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Phone number</Label>
+              <Input value={profile.phoneNumber} onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })} placeholder="+995..." className="bg-background border-border/50 h-9 text-sm" />
+            </div>
+          </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Address</Label>
-            <Input value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
+            <Label className="text-xs">Bio</Label>
+            <textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} placeholder="Tell something about yourself..." className="w-full min-h-[60px] rounded-md border border-border/50 bg-background px-3 py-2 text-sm resize-y" maxLength={2000} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Gender *</Label>
               <Select value={profile.gender} onValueChange={(v) => setProfile({ ...profile, gender: v })}>
                 <SelectTrigger className="bg-background border-border/50 h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                <SelectContent>{(enums?.genders || []).map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ethnicity *</Label>
               <Select value={profile.ethnicity} onValueChange={(v) => setProfile({ ...profile, ethnicity: v })}>
                 <SelectTrigger className="bg-background border-border/50 h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>{ETHNICITIES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                <SelectContent>{(enums?.ethnicities || []).map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Height (cm)</Label>
               <Input type="number" value={profile.height} onChange={(e) => setProfile({ ...profile, height: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
@@ -183,14 +216,18 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
               <Label className="text-xs">Weight (kg)</Label>
               <Input type="number" value={profile.weight} onChange={(e) => setProfile({ ...profile, weight: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Age</Label>
+              <Input type="number" value={profile.age} onChange={(e) => setProfile({ ...profile, age: e.target.value })} className="bg-background border-border/50 h-9 text-sm" />
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs">Services</Label>
             <div className="flex flex-wrap gap-1.5">
-              {SERVICES.map((s) => (
+              {(enums?.services || []).map((s) => (
                 <Badge key={s} variant={profile.services.includes(s) ? "default" : "secondary"} className={`cursor-pointer text-[10px] transition-colors ${profile.services.includes(s) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`} onClick={() => setProfile({ ...profile, services: toggleMulti(profile.services, s) })}>
-                  {s.replace("_", " ")}
+                  {s}
                 </Badge>
               ))}
             </div>
@@ -199,12 +236,17 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
           <div className="space-y-1.5">
             <Label className="text-xs">Languages</Label>
             <div className="flex flex-wrap gap-1.5">
-              {LANGUAGES.map((l) => (
+              {(enums?.languages || []).map((l) => (
                 <Badge key={l} variant={profile.languages.includes(l) ? "default" : "secondary"} className={`cursor-pointer text-[10px] transition-colors ${profile.languages.includes(l) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`} onClick={() => setProfile({ ...profile, languages: toggleMulti(profile.languages, l) })}>
                   {l}
                 </Badge>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3" /> Subscription price (₾/month)</Label>
+            <Input type="number" min={0} step={1} placeholder="29" value={profile.subscriptionPriceGel} onChange={(e) => setProfile({ ...profile, subscriptionPriceGel: e.target.value })} className="bg-background border-border/50 h-9 text-sm max-w-[140px]" />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -240,7 +282,7 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
         {/* Pricing section */}
         <div className="border-t border-border/50 pt-4 mt-2 space-y-4">
           <h3 className="font-display text-sm font-semibold text-foreground">Update Pricing</h3>
-          {([["In Call", inCall, setInCall], ["Out Call", outCall, setOutCall]] as const).map(([label, prices, setPrices]) => (
+          {([[enums?.serviceLocations?.[0] || "ჩემთან", inCall, setInCall], [enums?.serviceLocations?.[1] || "გამოძახებით", outCall, setOutCall]] as const).map(([label, prices, setPrices]) => (
             <div key={label} className="rounded-lg border border-border/50 bg-background p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-primary" />

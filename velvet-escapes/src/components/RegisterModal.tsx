@@ -15,7 +15,7 @@ interface RegisterModalProps {
 
 const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalProps) => {
   const { t } = useTranslation();
-  const [form, setForm] = useState({ email: "", phoneNumber: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -43,7 +43,7 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
 
   const handleClose = (val: boolean) => {
     if (!val) {
-      setForm({ email: "", phoneNumber: "", password: "" });
+      setForm({ email: "", password: "" });
       setError("");
       setSuccess(false);
     }
@@ -73,10 +73,6 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
             <div className="space-y-2">
               <Label htmlFor="reg-email">{t("auth.email")}</Label>
               <Input id="reg-email" type="email" placeholder={t("auth.emailPlaceholder")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-background border-border/50" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reg-phone">{t("auth.phoneNumber")}</Label>
-              <Input id="reg-phone" type="tel" placeholder={t("auth.phonePlaceholder")} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} className="bg-background border-border/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reg-password">{t("auth.password")}</Label>

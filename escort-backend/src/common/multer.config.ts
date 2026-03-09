@@ -22,7 +22,7 @@ function imageOrVideoFileFilter(
 
 export const escortPicturesMulterOptions: Options = {
   storage: diskStorage({
-    destination: './uploads/escort-pictures',
+    destination: './uploads/_tmp',
     filename: (req, file, callback) => {
       const fileExt =
         extname(file.originalname) ||

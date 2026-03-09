@@ -24,8 +24,9 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 import { fetchEscortById, type EscortPrices } from "@/lib/escorts-api";
-import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
+import { buildImageUrl, PLACEHOLDER_THUMBNAIL, API_BASE_URL } from "@/lib/api";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import { getPostsForProfile, type SubscriptionPostDto, buildPostMediaUrl, upvotePost, unvotePost, addPostComment, getPostComments, type PostCommentDto } from "@/lib/subscription-posts-api";
 
 const PriceCard = ({ title, prices, t }: { title: string; prices: EscortPrices | null; t: (k: string) => string }) => (
   <div className="rounded-xl border border-border/50 bg-card p-5">
@@ -62,6 +63,13 @@ const EscortProfile = () => {
     queryFn: () => fetchEscortById(id!),
     enabled: !!id,
   });
+
+  const { data: postsData } = useQuery({
+    queryKey: ["escort-posts", id],
+    queryFn: () => getPostsForProfile(escort!.id),
+    enabled: !!escort?.subscribed,
+  });
+  const subscriberPosts = postsData?.posts ?? [];
 
   if (isLoading) {
     return (
@@ -304,11 +312,108 @@ const EscortProfile = () => {
               <PriceCard title={t("profile.inCall")} prices={escort.prices.inCall} t={t} />
               <PriceCard title={t("profile.outCall")} prices={escort.prices.outCall} t={t} />
             </div>
+
+            {/* Exclusive content teaser for non-subscribers */}
+            {!escort.subscribed && (escort.exclusiveMediaCount ?? 0) > 0 && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-center">
+                <Lock className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-sm font-semibold text-foreground">{escort.exclusiveMediaCount} exclusive photos & videos</p>
+                <p className="text-xs text-muted-foreground mt-1">Subscribe to unlock all exclusive content</p>
+              </div>
+            )}
+
+            {/* Subscriber-only content: posts, exclusive photos/videos */}
+            {escort.subscribed && subscriberPosts.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" /> Subscriber Posts
+                </h2>
+                <div className="space-y-4">
+                  {subscriberPosts.map((post) => (
+                    <SubscriberPostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+function SubscriberPostCard({ post }: { post: SubscriptionPostDto }) {
+  const [expanded, setExpanded] = useState(false);
+  const [comments, setComments] = useState<PostCommentDto[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [upvoted, setUpvoted] = useState(post.upvotedByMe ?? false);
+  const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount);
+
+  const toggleComments = () => {
+    if (!expanded) {
+      getPostComments(post.id).then((r) => setComments(r.comments));
+    }
+    setExpanded(!expanded);
+  };
+
+  const handleUpvote = async () => {
+    if (upvoted) {
+      await unvotePost(post.id);
+      setUpvoted(false);
+      setUpvoteCount((c) => c - 1);
+    } else {
+      await upvotePost(post.id);
+      setUpvoted(true);
+      setUpvoteCount((c) => c + 1);
+    }
+  };
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return;
+    await addPostComment(post.id, commentText.trim());
+    setCommentText("");
+    getPostComments(post.id).then((r) => setComments(r.comments));
+  };
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+      {post.content && <p className="text-sm text-foreground whitespace-pre-wrap">{post.content}</p>}
+      {post.mediaPath && (
+        post.mediaType === "video" ? (
+          <video src={buildPostMediaUrl(post.mediaPath)} className="max-w-full max-h-72 rounded-lg" controls />
+        ) : (
+          <img src={buildPostMediaUrl(post.mediaPath)} alt="" className="max-w-full max-h-72 rounded-lg object-contain" />
+        )
+      )}
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <span>{new Date(post.createdAt).toLocaleString()}</span>
+        <button type="button" onClick={handleUpvote} className="flex items-center gap-1 hover:text-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={upvoted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" className="h-4 w-4"><path d="M7.5 15h2.25m8.024-9.75c.011.05.028.1.052.148.591 1.2.924 2.55.924 3.977a8.96 8.96 0 01-.999 4.125m.023-8.25c-.076-.365.183-.75.575-.75h.908c.889 0 1.713.518 1.972 1.368.339 1.11.521 2.287.521 3.507 0 1.553-.295 3.036-.831 4.398C20.613 14.547 19.833 15 19 15h-1.053c-.472 0-.745-.556-.5-.96a8.95 8.95 0 00.303-.54m.023-8.25H16.48a4.5 4.5 0 01-1.423-.23l-3.114-1.04a4.5 4.5 0 00-1.423-.23H6.504c-.694 0-1.372.352-1.654.986l-.108.247c-.36.826-.524 1.726-.524 2.63v.203c0 1.28.264 2.56.764 3.756l.105.27c.328.84 1.133 1.404 2.047 1.404h.684c.53 0 .969-.403 1.017-.928.05-.553.146-1.09.29-1.606a5.024 5.024 0 01.469-1.147l.088-.163c.23-.424-.033-.925-.512-.925H7.5" /></svg>
+          {upvoteCount}
+        </button>
+        <button type="button" onClick={toggleComments} className="flex items-center gap-1 hover:text-foreground">
+          <MessageCircle className="h-4 w-4" /> {post.commentCount}
+        </button>
+      </div>
+      {expanded && (
+        <div className="pt-3 border-t border-border/50 space-y-3">
+          {comments.map((c) => (
+            <p key={c.id} className="text-sm"><span className="font-medium">{c.userEmail ?? "User"}</span>: {c.content}</p>
+          ))}
+          <div className="flex gap-2">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleComment()}
+              placeholder="Add a comment..."
+              className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+            />
+            <button type="button" onClick={handleComment} className="gold-gradient rounded-md px-3 py-1.5 text-sm font-medium text-primary-foreground">Send</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default EscortProfile;

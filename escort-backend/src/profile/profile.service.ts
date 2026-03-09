@@ -15,7 +15,7 @@ import { UpdateEscortProfileDto } from './dtos/update-escort-profile.dto';
 import { EscortPicture } from 'database/entities/escort-picture.entity';
 import { EscortSubscriberPhoto } from 'database/entities/escort-subscriber-photo.entity';
 import { UserRole } from 'database/enums/enums';
-import { unlink } from 'fs/promises';
+import * as fs from 'fs/promises';
 import { join } from 'path';
 
 @Injectable()
@@ -187,15 +187,33 @@ export class ProfileService {
       throw new BadRequestException('Maximum 20 pictures allowed');
     }
 
-    const pictures = files.map((file, index) => {
+    const uploadsDir = join(process.cwd(), 'uploads');
+    const imagesDir = join(uploadsDir, 'images');
+    const folderName = (profile.username || profile.id).replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80) || profile.id;
+    const escortDir = join(imagesDir, folderName);
+    await fs.mkdir(escortDir, { recursive: true });
+
+    const pictures: EscortPicture[] = [];
+    const tmpDir = join(uploadsDir, '_tmp');
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      const srcPath = join(tmpDir, file.filename);
+      const destPath = join(escortDir, file.filename);
+      try {
+        await fs.rename(srcPath, destPath);
+      } catch {
+        await fs.copyFile(srcPath, destPath).then(() => fs.unlink(srcPath).catch(() => {}));
+      }
       const isVideo = file.mimetype?.startsWith('video/');
-      return this.escortPictureRepo.create({
-        profileId: profile.id,
-        picturePath: `/uploads/escort-pictures/${file.filename}`,
-        isProfilePicture: existingCount === 0 && index === 0 && !isVideo,
-        mediaType: isVideo ? 'video' : 'image',
-      });
-    });
+      pictures.push(
+        this.escortPictureRepo.create({
+          profileId: profile.id,
+          picturePath: `/uploads/images/${folderName}/${file.filename}`,
+          isProfilePicture: existingCount === 0 && index === 0 && !isVideo,
+          mediaType: isVideo ? 'video' : 'image',
+        }),
+      );
+    }
 
     const savedPictures = await this.escortPictureRepo.save(pictures);
 
@@ -204,7 +222,7 @@ export class ProfileService {
         id: picture.id,
         picturePath: picture.picturePath,
         isProfilePicture: picture.isProfilePicture,
-        mediaType: (picture as any).mediaType ?? null,
+        mediaType: picture.mediaType ?? null,
       })),
     };
   }
@@ -216,6 +234,12 @@ export class ProfileService {
     if (!profile) throw new NotFoundException('Escort profile not found');
     if (!files?.length) throw new BadRequestException('No files uploaded');
 
+    const imagesDir = join(process.cwd(), 'uploads', 'images');
+    const folderName = (profile.username || profile.id).replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80) || profile.id;
+    const escortDir = join(imagesDir, folderName);
+    await fs.mkdir(escortDir, { recursive: true });
+    const tmpDir = join(process.cwd(), 'uploads', '_tmp');
+
     const existing = await this.subscriberPhotoRepo.find({
       where: { profileId: profile.id },
       order: { sortOrder: 'DESC' },
@@ -223,16 +247,26 @@ export class ProfileService {
     });
     let sortOrder = existing[0]?.sortOrder ?? -1;
 
-    const items = files.map((file) => {
+    const items: EscortSubscriberPhoto[] = [];
+    for (const file of files) {
+      const srcPath = join(tmpDir, file.filename);
+      const destPath = join(escortDir, file.filename);
+      try {
+        await fs.rename(srcPath, destPath);
+      } catch {
+        await fs.copyFile(srcPath, destPath).then(() => fs.unlink(srcPath).catch(() => {}));
+      }
       const isVideo = file.mimetype?.startsWith('video/');
       sortOrder += 1;
-      return this.subscriberPhotoRepo.create({
-        profileId: profile.id,
-        picturePath: `/uploads/escort-pictures/${file.filename}`,
-        mediaType: isVideo ? 'video' : 'image',
-        sortOrder,
-      });
-    });
+      items.push(
+        this.subscriberPhotoRepo.create({
+          profileId: profile.id,
+          picturePath: `/uploads/images/${folderName}/${file.filename}`,
+          mediaType: isVideo ? 'video' : 'image',
+          sortOrder,
+        }),
+      );
+    }
     const saved = await this.subscriberPhotoRepo.save(items);
     return {
       items: saved.map((s) => ({
@@ -268,7 +302,7 @@ export class ProfileService {
     );
 
     try {
-      await unlink(filePath);
+      await fs.unlink(filePath);
     } catch {
       // ignore
     }

@@ -95,12 +95,6 @@ export class EscortProfile {
   @Column({ type: 'text', nullable: true })
   bio?: string | null;
 
-  // Raw service names from scraped data (Georgian text)
-  @Column({ type: 'text', array: true, default: [] })
-  serviceItems!: string[];
-
-  // --- NEW FIELDS ---
-
   // რამდენი ვიზიტორი/ნახვა ჰქონდა პროფილს (საერთო count)
   @Index('IDX_escort_profiles_viewCount')
   @Column({ type: 'int', default: 0 })

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Crown, Heart, MessageCircle } from "lucide-react";
+import { Sparkles, Heart, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
@@ -22,8 +22,8 @@ const Header = () => {
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Crown className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl font-bold tracking-wide gold-text">ÉLITE</span>
+            <Sparkles className="h-6 w-6 text-primary" />
+            <span className="font-display text-xl font-bold tracking-wide gold-text">ELITEFUN</span>
           </Link>
 
           <div className="flex items-center gap-3">

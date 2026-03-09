@@ -14,6 +14,13 @@ import { OptionalJwtAuthGuard } from 'src/Guards/optional-jwt.guard';
 import { EscortService } from './escort.service';
 import { GetAllEscortsDto } from './dtos/get-all-escorts.dto';
 import { EscortImageService } from './escortImage.service';
+import {
+  EscortService as EscortServiceEnum,
+  Ethnicity,
+  Gender,
+  Language,
+  ServiceLocation,
+} from 'database/enums/enums';
 
 @Controller('escort')
 export class EscortController {
@@ -40,6 +47,17 @@ export class EscortController {
   @Get('vips')
   getVipEscorts() {
     return this.escortService.getVipEscorts();
+  }
+
+  @Get('enums')
+  getEnums() {
+    return {
+      services: Object.values(EscortServiceEnum),
+      ethnicities: Object.values(Ethnicity),
+      genders: Object.values(Gender),
+      languages: Object.values(Language),
+      serviceLocations: Object.values(ServiceLocation),
+    };
   }
 
   @Get('image/*path')

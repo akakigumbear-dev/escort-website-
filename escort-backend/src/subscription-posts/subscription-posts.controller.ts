@@ -29,7 +29,6 @@ export class SubscriptionPostsController {
     @Body() body: { profileId: string; content?: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const mediaPath = file ? `/uploads/escort-pictures/${file.filename}` : null;
     const mediaType = file
       ? file.mimetype.startsWith('video/')
         ? 'video'
@@ -39,7 +38,7 @@ export class SubscriptionPostsController {
       req.user.userId,
       body.profileId,
       body.content?.trim() || null,
-      mediaPath,
+      file ?? null,
       mediaType,
     );
   }

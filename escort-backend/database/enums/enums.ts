@@ -1,45 +1,60 @@
 export enum EscortService {
-  DINNER = 'DINNER',
-  EVENT = 'EVENT',
-  TRAVEL = 'TRAVEL',
-  CITY_GUIDE = 'CITY_GUIDE',
-  BUSINESS_EVENT = 'BUSINESS_EVENT',
+  CLASSIC_SEX = 'კლასიკური სექსი',
+  ANAL_SEX = 'ანალური სექსი',
+  ORAL_WITH_CONDOM = 'მინეტი დამცავით',
+  ORAL_WITHOUT_CONDOM = 'მინეტი ურეზინოდ',
+  DEEP_THROAT = 'ღრმა მინეტი',
+  POSITION_69 = 'პოზა 69',
+  KISSING = 'კოცნა',
+  CUNNILINGUS = 'კუნილინგუსი',
+  RIMMING = 'რიმინგი',
+  EROTIC_MASSAGE = 'ეროტიული მასაჟი',
+  STRIP_DANCE = 'სტრიპტიზი',
+  DOMINATION = 'დომინაცია',
+  GOLDEN_SHOWER = 'ოქროს წვიმა',
+  SEX_TOYS = 'სექს სათამაშოები',
+  FOOT_FETISH = 'ფუტ ფეტიში',
+  LESBIAN = 'ლესბო',
+  GROUP_SEX = 'ჯგუფური',
+  COUPLE = 'წყვილი',
+  CUM_ON_FACE = 'სახეზე',
+  CUM_IN_MOUTH = 'პირში',
+  CUM_ON_BODY = 'სხეულზე',
 }
 
 export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
+  MALE = 'მამრობითი',
+  FEMALE = 'მდედრობითი',
+  OTHER = 'სხვა',
 }
 
 export enum Ethnicity {
-  EUROPEAN = 'EUROPEAN',
-  ASIAN = 'ASIAN',
-  LATIN = 'LATIN',
-  MIDDLE_EASTERN = 'MIDDLE_EASTERN',
-  MIXED = 'MIXED',
-  OTHER = 'OTHER',
-  // From scraped data (country codes)
-  GE = 'GE', // Georgia
-  UA = 'UA', // Ukraine
-  RU = 'RU', // Russia
-  TR = 'TR', // Turkey
-  AZ = 'AZ', // Azerbaijan
+  GEORGIAN = 'ქართველი',
+  UKRAINIAN = 'უკრაინელი',
+  RUSSIAN = 'რუსი',
+  TURKISH = 'თურქი',
+  AZERBAIJANI = 'აზერბაიჯანელი',
+  EUROPEAN = 'ევროპელი',
+  ASIAN = 'აზიელი',
+  LATIN = 'ლათინო',
+  MIDDLE_EASTERN = 'ახლო აღმოსავლელი',
+  MIXED = 'შერეული',
+  OTHER = 'სხვა',
 }
 
 export enum Language {
-  EN = 'EN',
-  KA = 'KA',
-  RU = 'RU',
-  ES = 'ES',
-  FR = 'FR',
-  TR = 'TR', // Türkçe
-  UK = 'UK', // Українська (Ukrainian)
+  EN = 'ინგლისური',
+  KA = 'ქართული',
+  RU = 'რუსული',
+  ES = 'ესპანური',
+  FR = 'ფრანგული',
+  TR = 'თურქული',
+  UK = 'უკრაინული',
 }
 
 export enum ServiceLocation {
-  IN_CALL = 'IN_CALL',
-  OUT_CALL = 'OUT_CALL',
+  IN_CALL = 'ჩემთან',
+  OUT_CALL = 'გამოძახებით',
 }
 
 export enum UserRole {

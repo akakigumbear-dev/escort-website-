@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,16 +16,20 @@ interface BecomeEscortModalProps {
   onComplete?: () => void;
 }
 
-const SERVICES = ["DINNER", "EVENT", "TRAVEL", "CITY_GUIDE", "BUSINESS_EVENT"];
-const ETHNICITIES = ["EUROPEAN", "ASIAN", "LATIN", "MIXED", "OTHER"];
-const GENDERS = ["FEMALE", "MALE", "OTHER"];
-const LANGUAGES = ["EN", "KA", "RU", "TR", "DE"];
+interface EnumOptions {
+  services: string[];
+  ethnicities: string[];
+  genders: string[];
+  languages: string[];
+  serviceLocations: string[];
+}
 
 const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModalProps) => {
   const { setEscortProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [enums, setEnums] = useState<EnumOptions | null>(null);
 
   const [profile, setProfile] = useState({
     username: "",
@@ -43,6 +47,14 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
   const [inCall, setInCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
   const [outCall, setOutCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
   const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    if (open && !enums) {
+      apiFetch("/escort/enums")
+        .then((data: EnumOptions) => setEnums(data))
+        .catch(() => {});
+    }
+  }, [open, enums]);
 
   const toggleMulti = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
@@ -94,7 +106,10 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
     setError("");
     setLoading(true);
     try {
-      for (const [loc, prices] of [["IN_CALL", inCall], ["OUT_CALL", outCall]] as const) {
+      const locs = enums?.serviceLocations || [];
+      const inLoc = locs[0] || "ჩემთან";
+      const outLoc = locs[1] || "გამოძახებით";
+      for (const [loc, prices] of [[inLoc, inCall], [outLoc, outCall]] as const) {
         const body = {
           serviceLocation: loc,
           price30min: Number(prices.price30min) || 0,
@@ -177,14 +192,14 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
                 <Label className="text-xs">Gender *</Label>
                 <Select value={profile.gender} onValueChange={(v) => setProfile({ ...profile, gender: v })}>
                   <SelectTrigger className="bg-background border-border/50 h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(enums?.genders || []).map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Ethnicity *</Label>
                 <Select value={profile.ethnicity} onValueChange={(v) => setProfile({ ...profile, ethnicity: v })}>
                   <SelectTrigger className="bg-background border-border/50 h-9 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{ETHNICITIES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(enums?.ethnicities || []).map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -202,9 +217,9 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
             <div className="space-y-1.5">
               <Label className="text-xs">Services</Label>
               <div className="flex flex-wrap gap-1.5">
-                {SERVICES.map((s) => (
+                {(enums?.services || []).map((s) => (
                   <Badge key={s} variant={profile.services.includes(s) ? "default" : "secondary"} className={`cursor-pointer text-[10px] transition-colors ${profile.services.includes(s) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`} onClick={() => setProfile({ ...profile, services: toggleMulti(profile.services, s) })}>
-                    {s.replace("_", " ")}
+                    {s}
                   </Badge>
                 ))}
               </div>
@@ -213,7 +228,7 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
             <div className="space-y-1.5">
               <Label className="text-xs">Languages</Label>
               <div className="flex flex-wrap gap-1.5">
-                {LANGUAGES.map((l) => (
+                {(enums?.languages || []).map((l) => (
                   <Badge key={l} variant={profile.languages.includes(l) ? "default" : "secondary"} className={`cursor-pointer text-[10px] transition-colors ${profile.languages.includes(l) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`} onClick={() => setProfile({ ...profile, languages: toggleMulti(profile.languages, l) })}>
                     {l}
                   </Badge>
@@ -228,7 +243,10 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
           </form>
         ) : (
           <form onSubmit={handleCreatePrices} className="space-y-5">
-            {([["In Call", inCall, setInCall], ["Out Call", outCall, setOutCall]] as const).map(([label, prices, setPrices]) => (
+            {([
+              [enums?.serviceLocations?.[0] || "ჩემთან", inCall, setInCall],
+              [enums?.serviceLocations?.[1] || "გამოძახებით", outCall, setOutCall],
+            ] as const).map(([label, prices, setPrices]) => (
               <div key={label} className="rounded-lg border border-border/50 bg-background p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-primary" />
