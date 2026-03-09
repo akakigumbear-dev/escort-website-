@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Crown, Check, DollarSign, Lock } from "lucide-react";
+import { Loader2, Crown, Check, Banknote, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
@@ -245,7 +245,7 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3" /> Subscription price (₾/month)</Label>
+            <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Subscription price (₾/month)</Label>
             <Input type="number" min={0} step={1} placeholder="29" value={profile.subscriptionPriceGel} onChange={(e) => setProfile({ ...profile, subscriptionPriceGel: e.target.value })} className="bg-background border-border/50 h-9 text-sm max-w-[140px]" />
           </div>
 
@@ -285,7 +285,7 @@ const EditEscortModal = ({ open, onOpenChange }: EditEscortModalProps) => {
           {([[enums?.serviceLocations?.[0] || "ჩემთან", inCall, setInCall], [enums?.serviceLocations?.[1] || "გამოძახებით", outCall, setOutCall]] as const).map(([label, prices, setPrices]) => (
             <div key={label} className="rounded-lg border border-border/50 bg-background p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <Banknote className="h-4 w-4 text-primary" />
                 <span className="font-display text-sm font-semibold text-foreground">{label}</span>
               </div>
               <div className="grid grid-cols-3 gap-2">

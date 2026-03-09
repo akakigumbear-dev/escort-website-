@@ -6,8 +6,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Expose on all interfaces so TablePlus can connect to server IP. Restrict with: ufw delete allow 5432/tcp && ufw allow from YOUR_IP to any port 5432 && ufw reload
     ports:
-      - "127.0.0.1:${DB_PORT}:5432"
+      - "${DB_PORT}:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
@@ -37,6 +38,7 @@ services:
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      OXAPAY_MERCHANT_KEY: ${OXAPAY_MERCHANT_KEY}
     volumes:
       - ./escort-backend/uploads:/app/uploads
     ports:

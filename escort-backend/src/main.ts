@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import * as express from 'express';
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const allowedOrigins = (process.env.CORS_ORIGIN || '*')
     .split(',')
@@ -21,7 +21,7 @@ async function bootstrap() {
       else cb(null, false);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,ngrok-skip-browser-warning',
+    allowedHeaders: 'Content-Type,Authorization,ngrok-skip-browser-warning,hmac',
     credentials: true,
   });
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { io, type Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Heart, MessageCircle, Wallet } from "lucide-react";
+import { Sparkles, Heart, MessageCircle, Wallet, Sun, Moon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
@@ -14,11 +14,13 @@ import DepositModal from "@/components/DepositModal";
 import FavoritesModal from "@/components/FavoritesModal";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Header = () => {
   const { t } = useTranslation();
   const { isAuthenticated, user, token } = useAuth();
   const { favorites } = useFavorites();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const onMessagesPage = location.pathname === "/messages";
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -96,6 +98,14 @@ const Header = () => {
 
           <nav className="flex items-center gap-3" aria-label="Main navigation">
             <LanguageSwitcher />
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             {isAuthenticated && (
               <button
                 type="button"

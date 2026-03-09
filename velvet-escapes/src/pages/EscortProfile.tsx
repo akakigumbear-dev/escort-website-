@@ -7,7 +7,7 @@ import SEO from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, DollarSign, Ruler, Weight, Globe, Briefcase, User, Star, Calendar, MessageCircle, Lock } from "lucide-react";
+import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, Banknote, Ruler, Weight, Globe, Briefcase, User, Star, Calendar, MessageCircle, Lock } from "lucide-react";
 
 const WHATSAPP_MSG = "I saw your profile at elit.ge @ velvet-escapes";
 
@@ -32,7 +32,7 @@ import { getPostsForProfile, type SubscriptionPostDto, buildPostMediaUrl, upvote
 const PriceCard = ({ title, prices, t }: { title: string; prices: EscortPrices | null; t: (k: string) => string }) => (
   <div className="rounded-xl border border-border/50 bg-card p-5">
     <div className="flex items-center gap-2 mb-4">
-      <DollarSign className="h-4 w-4 text-primary" />
+      <Banknote className="h-4 w-4 text-primary" />
       <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
     </div>
     {prices ? (
@@ -40,7 +40,7 @@ const PriceCard = ({ title, prices, t }: { title: string; prices: EscortPrices |
         {([[t("profile.price30min"), prices.price30min], [t("profile.price1hour"), prices.price1hour], [t("profile.wholeNight"), prices.priceWholeNight]] as const).map(([label, price]) => (
           <div key={label} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
             <span className="text-sm text-muted-foreground">{label}</span>
-            <span className="font-display text-lg font-bold gold-text">${price}</span>
+            <span className="font-display text-lg font-bold gold-text">{price} ₾</span>
           </div>
         ))}
       </div>

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Crown, Check, DollarSign } from "lucide-react";
+import { Loader2, Crown, Check, Banknote } from "lucide-react";
 import { useAuth, type EscortProfile as AuthEscortProfile } from "@/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
@@ -249,7 +249,7 @@ const BecomeEscortModal = ({ open, onOpenChange, onComplete }: BecomeEscortModal
             ] as const).map(([label, prices, setPrices]) => (
               <div key={label} className="rounded-lg border border-border/50 bg-background p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                  <Banknote className="h-4 w-4 text-primary" />
                   <h3 className="font-display text-sm font-semibold text-foreground">{label}</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-2">

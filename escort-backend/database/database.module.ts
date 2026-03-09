@@ -13,6 +13,7 @@ import { EscortSubscriberPhoto } from './entities/escort-subscriber-photo.entity
 import { SubscriptionPost } from './entities/subscription-post.entity';
 import { PostUpvote } from './entities/post-upvote.entity';
 import { PostComment } from './entities/post-comment.entity';
+import { Transaction } from './entities/transaction.entity';
 
 @Module({})
 export class DatabaseModule {
@@ -42,6 +43,7 @@ export class DatabaseModule {
               SubscriptionPost,
               PostUpvote,
               PostComment,
+              Transaction,
             ],
             synchronize: true,
             logging: false,

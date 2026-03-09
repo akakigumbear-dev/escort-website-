@@ -47,7 +47,7 @@ import {
   Trash2,
   Image as ImageIcon,
   Video,
-  DollarSign,
+  Banknote,
   Users,
   Sparkles,
   Wallet,
@@ -434,7 +434,7 @@ export default function EscortDashboard() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-primary" /> Subscription price (₾/month)</Label>
+                    <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3 text-primary" /> Subscription price (₾/month)</Label>
                     <Input type="number" min={0} step={1} placeholder="29" value={formState.subscriptionPriceGel} onChange={(e) => setFormState((s) => ({ ...s, subscriptionPriceGel: e.target.value }))} className="max-w-[140px]" />
                   </div>
                   {updateMutation.isError && <p className="text-sm text-destructive">{updateMutation.error.message}</p>}
@@ -447,7 +447,7 @@ export default function EscortDashboard() {
                 {/* Pricing */}
                 <div className="rounded-xl border border-border/50 bg-card p-6 space-y-5">
                   <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" /> Pricing
+                    <Banknote className="h-5 w-5 text-primary" /> Pricing (₾)
                   </h2>
                   {([
                     [enumOptions?.serviceLocations?.[0] || "ჩემთან", inCall, setInCall] as const,

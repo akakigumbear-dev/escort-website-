@@ -120,10 +120,9 @@
     "currentBalance": "Current balance",
     "amount": "Amount (₾)",
     "deposit": "Deposit",
-    "success": "Balance updated",
+    "success": "Payment received! Balance updated.",
     "close": "Close",
-    "invalidAmount": "Enter a valid amount",
-    "demoNote": "Demo: balance is for testing. No real payment."
+    "invalidAmount": "Enter a valid amount"
   },
   "account": {
     "title": "My Account",

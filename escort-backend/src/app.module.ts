@@ -8,6 +8,7 @@ import { EscortModule } from './escort/escort.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { MessagesModule } from './messages/messages.module';
 import { SubscriptionPostsModule } from './subscription-posts/subscription-posts.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SubscriptionPostsModule } from './subscription-posts/subscription-posts
     SubscriptionModule,
     MessagesModule,
     SubscriptionPostsModule,
+    PaymentModule,
   ],
   controllers: [],
   providers: [],

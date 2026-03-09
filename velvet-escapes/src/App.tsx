@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
 
 const EscortProfile = lazy(() => import("./pages/EscortProfile"));
@@ -20,6 +21,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <HelmetProvider>
+    <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <FavoritesProvider>
@@ -43,6 +45,7 @@ const App = () => (
         </FavoritesProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ThemeProvider>
   </HelmetProvider>
 );
 
