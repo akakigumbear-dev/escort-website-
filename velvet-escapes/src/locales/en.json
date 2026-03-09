@@ -101,6 +101,7 @@
     "joinHint": "Join the premier companion marketplace",
     "email": "Email",
     "emailPlaceholder": "your@email.com",
+    "phone": "Phone number",
     "phoneNumber": "Phone Number",
     "phonePlaceholder": "+1 234 567 890",
     "emailPasswordRequired": "Email and password are required.",
@@ -109,7 +110,48 @@
     "alreadyHaveAccount": "Already have an account?",
     "editEscortProfile": "Edit Escort Profile",
     "myProfile": "My profile",
+    "editProfile": "Edit profile",
     "becomeEscort": "Become Escort",
-    "logout": "Logout"
+    "logout": "Logout",
+    "linkedEscortProfile": "Your phone is linked to an existing escort profile. You can now manage it from Edit profile."
+  },
+  "deposit": {
+    "title": "Deposit",
+    "currentBalance": "Current balance",
+    "amount": "Amount (₾)",
+    "deposit": "Deposit",
+    "success": "Balance updated",
+    "close": "Close",
+    "invalidAmount": "Enter a valid amount",
+    "demoNote": "Demo: balance is for testing. No real payment."
+  },
+  "account": {
+    "title": "My Account",
+    "info": "Account Info",
+    "balance": "Balance",
+    "role": "Role",
+    "changePassword": "Change Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "updatePassword": "Update Password",
+    "passwordChanged": "Password changed successfully!",
+    "fillAllFields": "Please fill in all fields.",
+    "passwordMinLength": "New password must be at least 6 characters.",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "subscriptions": "My Subscriptions",
+    "noSubscriptions": "You have no active subscriptions.",
+    "unsubscribe": "Unsubscribe",
+    "loginRequired": "Please log in to access your account."
+  },
+  "vipPurchase": {
+    "title": "VIP Status",
+    "activeUntil": "VIP active until",
+    "notActive": "You are not VIP",
+    "pricePerDay": "10 ₾ per day",
+    "days": "Days",
+    "buy": "Buy VIP",
+    "insufficientBalance": "Insufficient balance. Deposit from the header.",
+    "success": "VIP extended"
   }
 }

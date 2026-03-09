@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -39,6 +40,17 @@ export class SubscriptionController {
   @Get('subscribers')
   getMySubscribers(@Req() req: { user: { userId: string } }) {
     return this.subscriptionService.getMySubscribers(req.user.userId);
+  }
+
+  @Delete(':escortProfileId')
+  unsubscribe(
+    @Req() req: { user: { userId: string } },
+    @Param('escortProfileId', ParseUUIDPipe) escortProfileId: string,
+  ) {
+    return this.subscriptionService.unsubscribe(
+      req.user.userId,
+      escortProfileId,
+    );
   }
 
   @Get('check/:escortProfileId')

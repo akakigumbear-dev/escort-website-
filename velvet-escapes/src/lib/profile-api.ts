@@ -14,11 +14,33 @@ export interface EscortProfileResponse {
   city: string;
   address: string;
   phoneNumber: string;
+  bio?: string;
+  age?: number;
+  height?: number;
+  weight?: number;
+  ethnicity?: string;
+  gender?: string;
+  services?: string[];
+  languages?: string[];
   subscriptionPriceGel?: number | null;
-  prices?: unknown[];
+  vipUntil?: string | null;
+  prices?: Array<{ id: string; serviceLocation: string; price30min?: number | null; price1hour?: number | null; priceWholeNight?: number | null }>;
   pictures?: Array<{ id: string; picturePath: string; isProfilePicture: boolean; isExclusive?: boolean; mediaType?: string | null }>;
   subscriberPhotos?: Array<{ id: string; picturePath: string; mediaType?: string | null; sortOrder: number }>;
   [key: string]: unknown;
+}
+
+export async function purchaseVip(days: number): Promise<{ vipUntil: string; balance: number }> {
+  const res = await fetch(`${API_BASE_URL}/profile/vip/purchase`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ days }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Failed to purchase VIP");
+  }
+  return res.json();
 }
 
 export async function getMyProfile(): Promise<EscortProfileResponse> {
@@ -99,7 +121,7 @@ export async function deletePicture(pictureId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete");
 }
 
-export async function upsertPrices(serviceLocation: "IN_CALL" | "OUT_CALL", prices: { price30min?: number; price1hour?: number; priceWholeNight?: number }): Promise<unknown> {
+export async function upsertPrices(serviceLocation: string, prices: { price30min?: number; price1hour?: number; priceWholeNight?: number }): Promise<unknown> {
   const res = await fetch(`${API_BASE_URL}/profile/prices`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },

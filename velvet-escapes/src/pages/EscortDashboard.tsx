@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import SEO from "@/components/SEO";
 import { useAuth, type EscortProfile as AuthEscortProfile } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import {
   setProfilePicture,
   setPictureExclusive,
   deletePicture,
+  purchaseVip,
 } from "@/lib/profile-api";
 import { getMySubscribers } from "@/lib/subscriptions-api";
 import {
@@ -31,6 +33,10 @@ import {
 } from "@/lib/subscription-posts-api";
 import { buildImageUrl, API_BASE_URL } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiFetch } from "@/lib/api";
+import { upsertPrices } from "@/lib/profile-api";
 import {
   Crown,
   Loader2,
@@ -43,22 +49,40 @@ import {
   Video,
   DollarSign,
   Users,
+  Sparkles,
+  Wallet,
 } from "lucide-react";
+
+const VIP_PRICE_PER_DAY = 10;
 
 export default function EscortDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, escortProfile, setEscortProfile } = useAuth();
+  const { user, escortProfile, setEscortProfile, refreshBalance } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [postContent, setPostContent] = useState("");
   const [postMedia, setPostMedia] = useState<File | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  const [formState, setFormState] = useState({ username: "", city: "", address: "", subscriptionPriceGel: "" });
+  const [formState, setFormState] = useState({
+    username: "", city: "", address: "", phoneNumber: "", bio: "",
+    age: "", height: "", weight: "", ethnicity: "", gender: "",
+    services: [] as string[], languages: [] as string[],
+    subscriptionPriceGel: "",
+  });
+  const [inCall, setInCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
+  const [outCall, setOutCall] = useState({ price30min: "", price1hour: "", priceWholeNight: "" });
+  const [enumOptions, setEnumOptions] = useState<{ services: string[]; ethnicities: string[]; genders: string[]; languages: string[]; serviceLocations: string[] } | null>(null);
+  const [pricesSaving, setPricesSaving] = useState(false);
+  const [pricesSaved, setPricesSaved] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [postError, setPostError] = useState("");
+  const [vipDays, setVipDays] = useState(1);
+  const [vipLoading, setVipLoading] = useState(false);
+  const [vipError, setVipError] = useState("");
+  const [vipSuccess, setVipSuccess] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["escort-profile"],
@@ -100,15 +124,37 @@ export default function EscortDashboard() {
   });
 
   useEffect(() => {
+    if (!enumOptions) {
+      apiFetch("/escort/enums").then(setEnumOptions).catch(() => {});
+    }
+  }, [enumOptions]);
+
+  useEffect(() => {
     if (profile) {
       setFormState({
         username: (profile.username ?? "").toString(),
         city: (profile.city ?? "").toString(),
         address: (profile.address ?? "").toString(),
+        phoneNumber: (profile.phoneNumber ?? "").toString(),
+        bio: ((profile as any).bio ?? "").toString(),
+        age: profile.age != null ? String(profile.age) : "",
+        height: profile.height != null ? String(profile.height) : "",
+        weight: profile.weight != null ? String(profile.weight) : "",
+        ethnicity: ((profile as any).ethnicity ?? "").toString(),
+        gender: ((profile as any).gender ?? "").toString(),
+        services: Array.isArray((profile as any).services) ? (profile as any).services : [],
+        languages: Array.isArray((profile as any).languages) ? (profile as any).languages : [],
         subscriptionPriceGel: profile.subscriptionPriceGel != null ? String(profile.subscriptionPriceGel) : "",
       });
+      const prices = Array.isArray((profile as any).prices) ? (profile as any).prices : [];
+      const inLoc = enumOptions?.serviceLocations?.[0] || "ჩემთან";
+      const outLoc = enumOptions?.serviceLocations?.[1] || "გამოძახებით";
+      const inP = prices.find((p: any) => p.serviceLocation === inLoc);
+      const outP = prices.find((p: any) => p.serviceLocation === outLoc);
+      if (inP) setInCall({ price30min: inP.price30min != null ? String(inP.price30min) : "", price1hour: inP.price1hour != null ? String(inP.price1hour) : "", priceWholeNight: inP.priceWholeNight != null ? String(inP.priceWholeNight) : "" });
+      if (outP) setOutCall({ price30min: outP.price30min != null ? String(outP.price30min) : "", price1hour: outP.price1hour != null ? String(outP.price1hour) : "", priceWholeNight: outP.priceWholeNight != null ? String(outP.priceWholeNight) : "" });
     }
-  }, [profile]);
+  }, [profile, enumOptions]);
 
   useEffect(() => {
     if (user && !escortProfile) {
@@ -137,13 +183,41 @@ export default function EscortDashboard() {
     );
   }
 
+  const toggleMulti = (arr: string[], val: string) =>
+    arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate({
       city: formState.city.trim(),
       address: formState.address.trim(),
+      phoneNumber: formState.phoneNumber.trim() || undefined,
+      bio: formState.bio.trim() || undefined,
+      age: formState.age ? Number(formState.age) : undefined,
+      height: formState.height ? Number(formState.height) : undefined,
+      weight: formState.weight ? Number(formState.weight) : undefined,
+      ethnicity: formState.ethnicity || undefined,
+      gender: formState.gender || undefined,
+      services: formState.services,
+      languages: formState.languages,
       subscriptionPriceGel: formState.subscriptionPriceGel ? Number(formState.subscriptionPriceGel) : undefined,
     });
+  };
+
+  const handleSavePrices = async () => {
+    setPricesSaving(true);
+    setPricesSaved(false);
+    try {
+      const inLoc = enumOptions?.serviceLocations?.[0] || "ჩემთან";
+      const outLoc = enumOptions?.serviceLocations?.[1] || "გამოძახებით";
+      await upsertPrices(inLoc as any, { price30min: Number(inCall.price30min) || 0, price1hour: Number(inCall.price1hour) || 0, priceWholeNight: Number(inCall.priceWholeNight) || 0 });
+      await upsertPrices(outLoc as any, { price30min: Number(outCall.price30min) || 0, price1hour: Number(outCall.price1hour) || 0, priceWholeNight: Number(outCall.priceWholeNight) || 0 });
+      queryClient.invalidateQueries({ queryKey: ["escort-profile"] });
+      setPricesSaved(true);
+      setTimeout(() => setPricesSaved(false), 2000);
+    } catch {} finally {
+      setPricesSaving(false);
+    }
   };
 
   const handleUploadProfileMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,13 +250,82 @@ export default function EscortDashboard() {
   type SubscriberItem = { id: string; clientId: string; clientEmail?: string };
   const subs: SubscriberItem[] = Array.isArray(subscribers) ? subscribers : [];
 
+  const isVipActive = profile?.vipUntil && new Date(profile.vipUntil) > new Date();
+  const balance = Number(user?.balance ?? 0);
+  const vipCost = vipDays * VIP_PRICE_PER_DAY;
+  const canAffordVip = balance >= vipCost;
+
+  const handlePurchaseVip = async () => {
+    setVipError("");
+    setVipSuccess(false);
+    if (vipDays < 1) return;
+    setVipLoading(true);
+    try {
+      await purchaseVip(vipDays);
+      await refreshBalance();
+      queryClient.invalidateQueries({ queryKey: ["escort-profile"] });
+      setVipSuccess(true);
+      setTimeout(() => setVipSuccess(false), 3000);
+    } catch (err: unknown) {
+      setVipError(err instanceof Error ? err.message : t("auth.somethingWrong"));
+    } finally {
+      setVipLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEO title="My Dashboard" description="Manage your escort profile on ELITEFUN." noindex />
       <Header />
-      <div className="container py-8 max-w-4xl">
+      <main className="container py-8 max-w-4xl">
         <div className="flex items-center gap-2 mb-6">
           <Crown className="h-8 w-8 text-primary" />
           <h1 className="font-display text-2xl font-bold text-foreground">{t("profile.myProfileTitle")}</h1>
+        </div>
+
+        {/* VIP Status & Purchase */}
+        <div className="rounded-xl border border-border/50 bg-card p-6 mb-6">
+          <h2 className="font-display text-lg font-semibold mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> {t("vipPurchase.title")}
+          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-sm">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{t("deposit.currentBalance")}:</span>
+              <span className="font-semibold gold-text">{balance.toFixed(2)} ₾</span>
+            </div>
+            {isVipActive ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                {t("vipPurchase.activeUntil")}: {new Date(profile!.vipUntil!).toLocaleDateString()}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("vipPurchase.notActive")}</p>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">{t("vipPurchase.pricePerDay")}</span>
+              <Input
+                type="number"
+                min={1}
+                max={365}
+                value={vipDays}
+                onChange={(e) => setVipDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="w-20 h-9 text-center"
+              />
+              <span className="text-xs text-muted-foreground">{t("vipPurchase.days")}</span>
+              <Button
+                onClick={handlePurchaseVip}
+                disabled={vipLoading || !canAffordVip}
+                className="gold-gradient text-sm"
+              >
+                {vipLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : `${t("vipPurchase.buy")} — ${vipCost} ₾`}
+              </Button>
+            </div>
+          </div>
+          {!canAffordVip && balance < vipCost && vipDays >= 1 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">{t("vipPurchase.insufficientBalance")}</p>
+          )}
+          {vipError && <p className="text-sm text-destructive mt-2">{vipError}</p>}
+          {vipSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">{t("vipPurchase.success")}</p>}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -197,48 +340,137 @@ export default function EscortDashboard() {
             {profileLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
             ) : (
-              <form onSubmit={handleSaveProfile} className="space-y-4 rounded-xl border border-border/50 bg-card p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Username</Label>
-                    <Input value={formState.username} className="mt-1" readOnly disabled />
+              <>
+                <form onSubmit={handleSaveProfile} className="space-y-5 rounded-xl border border-border/50 bg-card p-6">
+                  <h2 className="font-display text-lg font-semibold">Profile Details</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Username</Label>
+                      <Input value={formState.username} readOnly disabled className="opacity-60" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">City *</Label>
+                      <Input value={formState.city} onChange={(e) => setFormState((s) => ({ ...s, city: e.target.value }))} />
+                    </div>
                   </div>
-                  <div>
-                    <Label>City</Label>
-                    <Input
-                      value={formState.city}
-                      onChange={(e) => setFormState((s) => ({ ...s, city: e.target.value }))}
-                      className="mt-1"
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Address</Label>
+                      <Input value={formState.address} onChange={(e) => setFormState((s) => ({ ...s, address: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Phone</Label>
+                      <Input value={formState.phoneNumber} onChange={(e) => setFormState((s) => ({ ...s, phoneNumber: e.target.value }))} placeholder="+995..." />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Bio</Label>
+                    <textarea
+                      value={formState.bio}
+                      onChange={(e) => setFormState((s) => ({ ...s, bio: e.target.value }))}
+                      placeholder="Tell something about yourself..."
+                      className="w-full min-h-[80px] rounded-md border border-border/50 bg-background px-3 py-2 text-sm resize-y"
+                      maxLength={2000}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Gender *</Label>
+                      <Select value={formState.gender} onValueChange={(v) => setFormState((s) => ({ ...s, gender: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>{(enumOptions?.genders || []).map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Ethnicity *</Label>
+                      <Select value={formState.ethnicity} onValueChange={(v) => setFormState((s) => ({ ...s, ethnicity: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>{(enumOptions?.ethnicities || []).map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Height (cm)</Label>
+                      <Input type="number" value={formState.height} onChange={(e) => setFormState((s) => ({ ...s, height: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Weight (kg)</Label>
+                      <Input type="number" value={formState.weight} onChange={(e) => setFormState((s) => ({ ...s, weight: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Age</Label>
+                      <Input type="number" value={formState.age} onChange={(e) => setFormState((s) => ({ ...s, age: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Services</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(enumOptions?.services || []).map((s) => (
+                        <Badge
+                          key={s}
+                          variant={formState.services.includes(s) ? "default" : "secondary"}
+                          className={`cursor-pointer text-[11px] transition-colors ${formState.services.includes(s) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`}
+                          onClick={() => setFormState((prev) => ({ ...prev, services: toggleMulti(prev.services, s) }))}
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Languages</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(enumOptions?.languages || []).map((l) => (
+                        <Badge
+                          key={l}
+                          variant={formState.languages.includes(l) ? "default" : "secondary"}
+                          className={`cursor-pointer text-[11px] transition-colors ${formState.languages.includes(l) ? "gold-gradient text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`}
+                          onClick={() => setFormState((prev) => ({ ...prev, languages: toggleMulti(prev.languages, l) }))}
+                        >
+                          {l}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-primary" /> Subscription price (₾/month)</Label>
+                    <Input type="number" min={0} step={1} placeholder="29" value={formState.subscriptionPriceGel} onChange={(e) => setFormState((s) => ({ ...s, subscriptionPriceGel: e.target.value }))} className="max-w-[140px]" />
+                  </div>
+                  {updateMutation.isError && <p className="text-sm text-destructive">{updateMutation.error.message}</p>}
+                  {saveSuccess && <p className="text-sm text-emerald-600">Saved.</p>}
+                  <Button type="submit" disabled={updateMutation.isPending} className="gold-gradient">
+                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save profile"}
+                  </Button>
+                </form>
+
+                {/* Pricing */}
+                <div className="rounded-xl border border-border/50 bg-card p-6 space-y-5">
+                  <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" /> Pricing
+                  </h2>
+                  {([
+                    [enumOptions?.serviceLocations?.[0] || "ჩემთან", inCall, setInCall] as const,
+                    [enumOptions?.serviceLocations?.[1] || "გამოძახებით", outCall, setOutCall] as const,
+                  ]).map(([label, prices, setPrices]) => (
+                    <div key={label} className="rounded-lg border border-border/30 bg-muted/30 p-4 space-y-3">
+                      <span className="font-display text-sm font-semibold">{label}</span>
+                      <div className="grid grid-cols-3 gap-3">
+                        {([["30 min", "price30min"], ["1 hour", "price1hour"], ["Whole Night", "priceWholeNight"]] as const).map(([lbl, key]) => (
+                          <div key={key} className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">{lbl}</Label>
+                            <Input type="number" min={0} placeholder="0" value={prices[key]} onChange={(e) => setPrices({ ...prices, [key]: e.target.value })} className="h-8 text-sm" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {pricesSaved && <p className="text-sm text-emerald-600">Prices saved.</p>}
+                  <Button onClick={handleSavePrices} disabled={pricesSaving} className="gold-gradient">
+                    {pricesSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save prices"}
+                  </Button>
                 </div>
-                <div>
-                  <Label>Address</Label>
-                  <Input
-                    value={formState.address}
-                    onChange={(e) => setFormState((s) => ({ ...s, address: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <Label>Subscription price (₾/month)</Label>
-                </div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="29"
-                  value={formState.subscriptionPriceGel}
-                  onChange={(e) => setFormState((s) => ({ ...s, subscriptionPriceGel: e.target.value }))}
-                  className="max-w-[120px]"
-                />
-                {updateMutation.isError && <p className="text-sm text-destructive">{updateMutation.error.message}</p>}
-                {saveSuccess && <p className="text-sm text-emerald-600">Saved.</p>}
-                <Button type="submit" disabled={updateMutation.isPending} className="gold-gradient">
-                  {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save profile"}
-                </Button>
-              </form>
+              </>
             )}
           </TabsContent>
 
@@ -259,7 +491,7 @@ export default function EscortDashboard() {
                     {pic.mediaType === "video" ? (
                       <video src={mediaUrl} className="w-full aspect-square object-cover" controls />
                     ) : (
-                      <img src={mediaUrl} alt="" className="w-full aspect-square object-cover" />
+                      <img src={mediaUrl} alt="Profile photo" className="w-full aspect-square object-cover" />
                     )}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 p-2">
                       {!pic.isProfilePicture && (
@@ -295,7 +527,7 @@ export default function EscortDashboard() {
                     {pic.mediaType === "video" ? (
                       <video src={`${API_BASE_URL}${pic.picturePath}`} className="w-full aspect-square object-cover" controls />
                     ) : (
-                      <img src={`${API_BASE_URL}${pic.picturePath}`} alt="" className="w-full aspect-square object-cover" />
+                      <img src={`${API_BASE_URL}${pic.picturePath}`} alt="Subscriber-only photo" className="w-full aspect-square object-cover" />
                     )}
                   </div>
                 ))}
@@ -382,7 +614,7 @@ export default function EscortDashboard() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 }
@@ -444,7 +676,7 @@ function PostCard({
           {post.mediaType === "video" ? (
             <video src={buildPostMediaUrl(post.mediaPath)} className="max-w-full max-h-64 rounded-lg" controls />
           ) : (
-            <img src={buildPostMediaUrl(post.mediaPath)} alt="" className="max-w-full max-h-64 rounded-lg object-contain" />
+            <img src={buildPostMediaUrl(post.mediaPath)} alt="Post media" className="max-w-full max-h-64 rounded-lg object-contain" />
           )}
         </div>
       )}

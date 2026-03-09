@@ -8,9 +8,10 @@ import { Repository } from 'typeorm';
 import { Subscription } from 'database/entities/subscription.entity';
 import { EscortProfile } from 'database/entities/escort-profile.entity';
 import { User } from 'database/entities/user.entity';
-import { UserRole, SubscriptionStatus } from 'database/enums/enums';
+import { SubscriptionStatus } from 'database/enums/enums';
 
 const SUBSCRIPTION_DAYS = 30;
+const DEFAULT_SUBSCRIPTION_PRICE = 29;
 
 @Injectable()
 export class SubscriptionService {
@@ -26,12 +27,8 @@ export class SubscriptionService {
   async subscribe(clientId: string, escortProfileId: string) {
     const user = await this.userRepo.findOne({
       where: { id: clientId },
-      relations: { escort_profile: true },
     });
     if (!user) throw new NotFoundException('User not found');
-    if (user.role !== UserRole.CLIENT) {
-      throw new BadRequestException('Only clients can subscribe to escorts');
-    }
 
     const profile = await this.profileRepo.findOne({
       where: { id: escortProfileId },
@@ -42,12 +39,42 @@ export class SubscriptionService {
       throw new BadRequestException('Cannot subscribe to yourself');
     }
 
+    // Check for ANY existing subscription row (unique index on clientId+escortProfileId)
     const existing = await this.subRepo.findOne({
-      where: { clientId, escortProfileId, status: SubscriptionStatus.ACTIVE },
+      where: { clientId, escortProfileId },
     });
+
     if (existing) {
-      return this.toSubscriptionDto(existing, profile);
+      // Already active and not expired — just return it
+      if (
+        existing.status === SubscriptionStatus.ACTIVE &&
+        (!existing.endDate || new Date(existing.endDate) > new Date())
+      ) {
+        return this.toSubscriptionDto(existing, profile);
+      }
+
+      // Was cancelled/expired — reactivate it after charging
+      const price = this.getPrice(profile);
+      this.assertBalance(user, price);
+      await this.deductBalance(clientId, price);
+
+      const now = new Date();
+      const endDate = new Date();
+      endDate.setDate(now.getDate() + SUBSCRIPTION_DAYS);
+
+      existing.status = SubscriptionStatus.ACTIVE;
+      existing.startDate = now;
+      existing.endDate = endDate;
+      const saved = await this.subRepo.save(existing);
+
+      const newBalance = await this.getBalance(clientId);
+      return { ...this.toSubscriptionDto(saved, profile), price, newBalance };
     }
+
+    // Brand new subscription
+    const price = this.getPrice(profile);
+    this.assertBalance(user, price);
+    await this.deductBalance(clientId, price);
 
     const startDate = new Date();
     const endDate = new Date();
@@ -61,7 +88,9 @@ export class SubscriptionService {
       endDate,
     });
     const saved = await this.subRepo.save(sub);
-    return this.toSubscriptionDto(saved, profile);
+
+    const newBalance = await this.getBalance(clientId);
+    return { ...this.toSubscriptionDto(saved, profile), price, newBalance };
   }
 
   async getMySubscriptions(clientId: string) {
@@ -82,7 +111,10 @@ export class SubscriptionService {
     });
     if (!profile) return [];
     const subs = await this.subRepo.find({
-      where: { escortProfileId: profile.id, status: SubscriptionStatus.ACTIVE },
+      where: {
+        escortProfileId: profile.id,
+        status: SubscriptionStatus.ACTIVE,
+      },
       relations: { client: true },
       order: { createdAt: 'DESC' },
     });
@@ -96,6 +128,18 @@ export class SubscriptionService {
       startDate: s.startDate,
       endDate: s.endDate,
     }));
+  }
+
+  async unsubscribe(clientId: string, escortProfileId: string) {
+    const sub = await this.subRepo.findOne({
+      where: { clientId, escortProfileId, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!sub) throw new NotFoundException('No active subscription found');
+
+    sub.status = SubscriptionStatus.CANCELLED;
+    sub.endDate = new Date();
+    await this.subRepo.save(sub);
+    return { ok: true };
   }
 
   async isSubscribed(
@@ -120,11 +164,41 @@ export class SubscriptionService {
     return { subscribed: ok };
   }
 
+  private getPrice(profile: EscortProfile): number {
+    return profile.subscriptionPriceGel != null
+      ? Number(profile.subscriptionPriceGel)
+      : DEFAULT_SUBSCRIPTION_PRICE;
+  }
+
+  private assertBalance(user: User, price: number) {
+    const balance = Number(user.balance ?? 0);
+    if (balance < price) {
+      throw new BadRequestException(
+        `Insufficient balance. Subscription costs ${price}₾, you have ${balance.toFixed(2)}₾. Please deposit first.`,
+      );
+    }
+  }
+
+  private async deductBalance(userId: string, amount: number) {
+    await this.userRepo
+      .createQueryBuilder()
+      .update(User)
+      .set({ balance: () => `balance - :amount` })
+      .setParameter('amount', amount)
+      .where('id = :id', { id: userId })
+      .execute();
+  }
+
+  private async getBalance(userId: string): Promise<number> {
+    const u = await this.userRepo.findOne({ where: { id: userId } });
+    return Number(u?.balance ?? 0);
+  }
+
   private toSubscriptionDto(sub: Subscription, profile: EscortProfile) {
     return {
       id: sub.id,
       escortProfileId: sub.escortProfileId,
-      escortUsername: profile.username,
+      escortUsername: profile?.username ?? 'Unknown',
       status: sub.status,
       startDate: sub.startDate,
       endDate: sub.endDate,

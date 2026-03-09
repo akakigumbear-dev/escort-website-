@@ -2,17 +2,18 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import SEO from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchEscortById } from "@/lib/escorts-api";
 import { subscribeToEscort } from "@/lib/subscriptions-api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Lock, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, Loader2, Wallet } from "lucide-react";
 
 export default function Payment() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, refreshBalance } = useAuth();
   const [completed, setCompleted] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -24,9 +25,10 @@ export default function Payment() {
 
   const payMutation = useMutation({
     mutationFn: () => subscribeToEscort(id!),
-    onSuccess: () => {
+    onSuccess: async () => {
       setPayError(null);
       setCompleted(true);
+      await refreshBalance();
       queryClient.invalidateQueries({ queryKey: ["escort", id] });
       setTimeout(() => navigate(id ? `/escort/${id}` : "/"), 1500);
     },
@@ -70,11 +72,18 @@ export default function Payment() {
   }
 
   const price = escort.subscriptionPriceGel != null ? escort.subscriptionPriceGel : 29;
+  const balance = Number(user?.balance ?? 0);
+  const canAfford = balance >= price;
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title={`Subscribe to ${escort.username}`}
+        description={`Subscribe to ${escort.username} on ELITEFUN for exclusive content and direct messaging.`}
+        noindex
+      />
       <Header />
-      <div className="container py-8 max-w-md mx-auto">
+      <main className="container py-8 max-w-md mx-auto">
         <Link to={id ? `/escort/${id}` : "/"} className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to profile
         </Link>
@@ -84,11 +93,24 @@ export default function Payment() {
             <Lock className="h-5 w-5 text-primary" /> Subscribe to {escort.username}
           </h1>
           <p className="text-sm text-muted-foreground">
-            One-time subscription. You will get access to exclusive content and direct messaging.
+            30-day subscription. Access exclusive content and direct messaging.
           </p>
           <div className="flex items-baseline gap-2">
             <span className="font-display text-3xl font-bold gold-text">{price}₾</span>
             <span className="text-muted-foreground text-sm">/ month</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm rounded-lg border border-border/50 bg-muted/50 px-4 py-3">
+            <Wallet className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Your balance:</span>
+            <span className={`font-semibold ${canAfford ? "text-foreground" : "text-destructive"}`}>
+              {balance.toFixed(2)} ₾
+            </span>
+            {!canAfford && (
+              <span className="text-xs text-destructive ml-auto">
+                Need {(price - balance).toFixed(2)} ₾ more
+              </span>
+            )}
           </div>
 
           {payError && (
@@ -98,27 +120,24 @@ export default function Payment() {
           )}
           {completed ? (
             <div className="rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-3 text-sm font-medium">
-              Payment successful. Redirecting...
+              Subscribed! Redirecting...
             </div>
           ) : (
             <button
               type="button"
               onClick={() => { setPayError(null); payMutation.mutate(); }}
-              disabled={payMutation.isPending}
+              disabled={payMutation.isPending || !canAfford}
               className="gold-gradient w-full inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold text-primary-foreground shadow hover:opacity-90 disabled:opacity-70"
             >
               {payMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <>Complete payment — {price}₾</>
+                <>Pay {price}₾ from balance</>
               )}
             </button>
           )}
         </div>
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          This is a demo payment. No real charge.
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

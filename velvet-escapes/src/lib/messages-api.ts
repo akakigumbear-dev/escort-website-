@@ -71,6 +71,22 @@ export async function sendMessage(
   return res.json();
 }
 
+export async function getUnreadCount(): Promise<number> {
+  const res = await fetch(`${API_BASE_URL}/messages/unread-count`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.count ?? 0;
+}
+
+export async function markConversationRead(otherUserId: string): Promise<void> {
+  await fetch(`${API_BASE_URL}/messages/read/${encodeURIComponent(otherUserId)}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+}
+
 export function buildAttachmentUrl(path: string): string {
   if (!path) return "";
   const encoded = path.replace(/^\/uploads\/dm\//, "").split("/").map(encodeURIComponent).join("/");

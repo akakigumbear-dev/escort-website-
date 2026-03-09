@@ -99,12 +99,45 @@ export class MessagesService {
       });
     }
 
+    for (const conv of conversations) {
+      const unread = await this.messageRepo.count({
+        where: {
+          senderId: conv.userId,
+          receiverId: userId,
+          isRead: false,
+        },
+      });
+      conv.unreadCount = unread;
+    }
+
     conversations.sort(
       (a, b) =>
         new Date(b.lastMessage.createdAt).getTime() -
         new Date(a.lastMessage.createdAt).getTime(),
     );
     return conversations;
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.messageRepo.count({
+      where: { receiverId: userId, isRead: false },
+    });
+  }
+
+  async markConversationRead(
+    userId: string,
+    otherUserId: string,
+  ): Promise<{ marked: number }> {
+    const result = await this.messageRepo
+      .createQueryBuilder()
+      .update(Message)
+      .set({ isRead: true })
+      .where('"receiverId" = :userId AND "senderId" = :otherId AND "isRead" = false', {
+        userId,
+        otherId: otherUserId,
+      })
+      .execute();
+    return { marked: result.affected ?? 0 };
   }
 
   async getMessagesWith(

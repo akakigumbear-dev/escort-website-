@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import SEO from "@/components/SEO";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
 import { Heart } from "lucide-react";
@@ -13,8 +14,14 @@ const Favorites = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Favorites"
+        description="Your saved escort profiles on ELITEFUN."
+        canonical="/favorites"
+        noindex
+      />
       <Header />
-      <div className="container py-8">
+      <main className="container py-8">
         <h1 className="font-display text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
           <Heart className="h-6 w-6 text-primary fill-primary" />
           {t("favorites.title")}
@@ -54,7 +61,7 @@ const Favorites = () => {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

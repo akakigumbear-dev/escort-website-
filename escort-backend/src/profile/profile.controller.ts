@@ -48,6 +48,11 @@ export class ProfileController {
     return this.escort.activateEscortProfile(req.user.userId);
   }
 
+  @Post('balance')
+  addBalance(@Req() req: any, @Body() body: { amount: number }) {
+    return this.escort.addBalance(req.user.userId, body.amount);
+  }
+
   @Post('vip/purchase')
   purchaseVipProfile(@Req() req: any, @Body() dto: PurchaseVipDto) {
     return this.escort.purchaseVipProfile(req.user.userId, dto);

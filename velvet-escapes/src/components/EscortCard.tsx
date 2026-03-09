@@ -20,12 +20,13 @@ const EscortCard = ({ escort, compact }: EscortCardProps) => {
   return (
     <Link
       to={`/escort/${escort.id}`}
+      aria-label={`View ${escort.username} profile — ${escort.city}`}
       className={`group relative block overflow-hidden rounded-lg bg-card border border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_30px_-5px_hsl(var(--gold)/0.15)] ${compact ? "w-full" : ""}`}
     >
       <div className="relative overflow-hidden aspect-[3/4]">
         <img
           src={image}
-          alt={escort.username}
+          alt={`${escort.username} — ${escort.city}`}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
           onError={() => setImgError(true)}

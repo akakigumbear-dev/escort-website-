@@ -36,7 +36,7 @@ const LoginModal = ({ open, onOpenChange, onSwitchToRegister }: LoginModalProps)
       });
       const token = data.token || data.access_token || data.accessToken || "";
       const u = data.user || { email: form.identifier };
-      login({ id: u.id, email: u.email || form.identifier, role: u.role }, token);
+      login({ id: u.id, email: u.email || form.identifier, phoneNumber: u.phoneNumber, balance: u.balance ?? 0, role: u.role }, token);
       handleClose(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("auth.somethingWrong"));

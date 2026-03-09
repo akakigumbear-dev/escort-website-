@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
+import SEO from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -111,10 +112,33 @@ const EscortProfile = () => {
       : buildImageUrl(escort.profilePicture.picturePath);
   const galleryImages = escort.pictures?.filter(p => !p.isProfilePicture) ?? [];
 
+  const profileDescription = `${escort.username} — ${escort.city ?? "Georgia"}. ${escort.gender ?? ""} ${escort.ethnicity ?? ""}. View profile, services and prices on ELITEFUN.`.trim();
+  const profileImage = escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : undefined;
+  const profileJsonLd = {
+    "@type": "ProfilePage",
+    name: escort.username,
+    description: profileDescription,
+    url: `https://elitescort.fun/escort/${escort.id}`,
+    ...(profileImage ? { image: profileImage } : {}),
+    mainEntity: {
+      "@type": "Person",
+      name: escort.username,
+      ...(escort.city ? { address: { "@type": "PostalAddress", addressLocality: escort.city, addressCountry: "GE" } } : {}),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title={`${escort.username} — ${escort.city ?? "Georgia"}`}
+        description={profileDescription}
+        canonical={`/escort/${escort.id}`}
+        ogType="profile"
+        ogImage={profileImage}
+        jsonLd={profileJsonLd}
+      />
       <Header />
-      <div className="container py-8">
+      <main className="container py-8">
         <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> {t("profile.backToBrowse")}
         </Link>
@@ -131,7 +155,7 @@ const EscortProfile = () => {
                    <div key={pic.id} className="overflow-hidden rounded-lg border border-border/50">
                      <img
                        src={failedGalleryIds.has(pic.id) ? PLACEHOLDER_THUMBNAIL : buildImageUrl(pic.picturePath)}
-                       alt=""
+                       alt={`${escort.username} photo`}
                        className="h-full w-full object-cover aspect-square"
                        loading="lazy"
                        onError={() => setFailedGalleryIds((prev) => new Set(prev).add(pic.id))}
@@ -337,7 +361,7 @@ const EscortProfile = () => {
             )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
@@ -382,7 +406,7 @@ function SubscriberPostCard({ post }: { post: SubscriptionPostDto }) {
         post.mediaType === "video" ? (
           <video src={buildPostMediaUrl(post.mediaPath)} className="max-w-full max-h-72 rounded-lg" controls />
         ) : (
-          <img src={buildPostMediaUrl(post.mediaPath)} alt="" className="max-w-full max-h-72 rounded-lg object-contain" />
+          <img src={buildPostMediaUrl(post.mediaPath)} alt="Subscriber post content" className="max-w-full max-h-72 rounded-lg object-contain" />
         )
       )}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">

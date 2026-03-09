@@ -39,6 +39,9 @@ export class Message {
   @Column({ type: 'varchar', length: 100, nullable: true })
   attachmentOriginalName!: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  isRead!: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

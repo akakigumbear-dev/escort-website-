@@ -60,6 +60,19 @@ export class ProfileService {
     return saved;
   }
 
+  async addBalance(userId: string, amount: number): Promise<{ balance: number }> {
+    if (amount <= 0) throw new BadRequestException('Amount must be positive');
+    await this.users
+      .createQueryBuilder()
+      .update(User)
+      .set({ balance: () => `balance + :amount` })
+      .setParameter('amount', amount)
+      .where('id = :id', { id: userId })
+      .execute();
+    const user = await this.users.findOne({ where: { id: userId } });
+    return { balance: Number(user?.balance ?? 0) };
+  }
+
   async getMyEscortProfile(userId: string) {
     const profile = await this.profiles.findOne({
       where: { user: { id: userId } } as any,
@@ -101,11 +114,34 @@ export class ProfileService {
     return this.profiles.save(profile);
   }
 
-  async purchaseVipProfile(userId: string, dto: any) {
+  /** VIP price per day in same currency as user balance (e.g. GEL). */
+  private static readonly VIP_PRICE_PER_DAY = 10;
+
+  async purchaseVipProfile(userId: string, dto: { days: number }) {
     const profile = await this.profiles.findOne({
       where: { user: { id: userId } } as any,
+      relations: { user: true } as any,
     });
     if (!profile) throw new NotFoundException('Escort profile not found');
+
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const cost = dto.days * ProfileService.VIP_PRICE_PER_DAY;
+    const balance = Number(user.balance ?? 0);
+    if (balance < cost) {
+      throw new BadRequestException(
+        `Insufficient balance. Need ${cost}, you have ${balance.toFixed(2)}.`,
+      );
+    }
+
+    await this.users
+      .createQueryBuilder()
+      .update(User)
+      .set({ balance: () => `balance - :cost` })
+      .setParameter('cost', cost)
+      .where('id = :id', { id: userId })
+      .execute();
 
     const now = new Date();
     const base =
@@ -113,7 +149,10 @@ export class ProfileService {
     const vipUntil = new Date(base.getTime() + dto.days * 24 * 60 * 60 * 1000);
 
     profile.vipUntil = vipUntil;
-    return this.profiles.save(profile);
+    await this.profiles.save(profile);
+
+    const newBalance = balance - cost;
+    return { vipUntil, balance: newBalance };
   }
 
   async upsertPrices(userId: string, dto: UpsertPricesDto) {

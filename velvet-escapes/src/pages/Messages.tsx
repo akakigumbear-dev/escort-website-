@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
 import Header from "@/components/Header";
+import SEO from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getConversations,
   getMessagesWith,
   sendMessage,
+  markConversationRead,
   type Conversation,
   type MessageDto,
 } from "@/lib/messages-api";
@@ -36,7 +38,7 @@ function DMImage({ src, headers }: { src: string; headers: Record<string, string
   return (
     <img
       src={blobUrl}
-      alt=""
+      alt="Message attachment"
       className="max-w-full rounded max-h-48 object-contain"
       style={{ maxWidth: "200px" }}
     />
@@ -76,13 +78,24 @@ export default function Messages() {
     const socket = socketRef.current;
     if (!socket) return;
     const onMessage = (payload: MessageDto) => {
-      setMessages((prev) => {
-        if (selectedUserId && (payload.senderId === selectedUserId || payload.receiverId === selectedUserId)) {
+      const isCurrentConvo = selectedUserId && (payload.senderId === selectedUserId || payload.receiverId === selectedUserId);
+      if (isCurrentConvo) {
+        setMessages((prev) => {
           if (prev.some((m) => m.id === payload.id)) return prev;
           return [...prev, { ...payload, createdAt: typeof payload.createdAt === "string" ? payload.createdAt : new Date(payload.createdAt).toISOString() }];
-        }
-        return prev;
-      });
+        });
+        markConversationRead(selectedUserId).then(() => {
+          window.dispatchEvent(new Event("messages-read"));
+        }).catch(() => {});
+      } else if (payload.senderId) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.userId === payload.senderId
+              ? { ...c, unreadCount: (c.unreadCount ?? 0) + 1, lastMessage: { content: payload.content, hasAttachment: !!payload.attachmentPath, createdAt: payload.createdAt } }
+              : c
+          )
+        );
+      }
     };
     socket.on("message", onMessage);
     return () => {
@@ -112,6 +125,13 @@ export default function Messages() {
       .then((r) => setMessages(r.messages))
       .catch(() => setMessages([]))
       .finally(() => setLoadingMessages(false));
+
+    markConversationRead(selectedUserId).then(() => {
+      setConversations((prev) =>
+        prev.map((c) => (c.userId === selectedUserId ? { ...c, unreadCount: 0 } : c))
+      );
+      window.dispatchEvent(new Event("messages-read"));
+    }).catch(() => {});
   }, [selectedUserId]);
 
   useEffect(() => {
@@ -156,8 +176,9 @@ export default function Messages() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO title="Messages" description="Your private messages on ELITEFUN." noindex />
       <Header />
-      <div className="container flex-1 flex flex-col md:flex-row gap-0 border border-border/50 rounded-xl overflow-hidden bg-card mt-4 mb-8 max-w-5xl mx-auto min-h-[500px]">
+      <main className="container flex-1 flex flex-col md:flex-row gap-0 border border-border/50 rounded-xl overflow-hidden bg-card mt-4 mb-8 max-w-5xl mx-auto min-h-[500px]">
         <aside className="w-full md:w-72 border-b md:border-b-0 md:border-r border-border/50 flex flex-col">
           <div className="p-3 border-b border-border/50">
             <h1 className="font-display text-lg font-semibold flex items-center gap-2">
@@ -177,9 +198,16 @@ export default function Messages() {
                   onClick={() => setSelectedUserId(c.userId)}
                   className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors ${selectedUserId === c.userId ? "bg-primary/10 border-l-2 border-l-primary" : ""}`}
                 >
-                  <p className="font-medium text-sm truncate">{c.email}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm truncate">{c.email}</p>
+                    {(c.unreadCount ?? 0) > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {c.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {c.lastMessage.hasAttachment ? "Attachment" : c.lastMessage.content || "—"}
+                    {c.lastMessage.hasAttachment ? "📎 Attachment" : c.lastMessage.content || "—"}
                   </p>
                 </button>
               ))
@@ -187,7 +215,7 @@ export default function Messages() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0">
+        <section className="flex-1 flex flex-col min-w-0">
           {selectedUserId ? (
             <>
               <div className="p-3 border-b border-border/50 flex items-center gap-2">
@@ -269,8 +297,8 @@ export default function Messages() {
               Select a conversation or start from an escort profile (Message button).
             </div>
           )}
-        </main>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

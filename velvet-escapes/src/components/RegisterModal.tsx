@@ -15,25 +15,29 @@ interface RegisterModalProps {
 
 const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalProps) => {
   const { t } = useTranslation();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", phoneNumber: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [linkedMsg, setLinkedMsg] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!form.email || !form.password) {
-      setError(t("auth.emailPasswordRequired"));
+    if (!form.email || !form.phoneNumber || !form.password) {
+      setError(t("auth.allFieldsRequired"));
       return;
     }
     setLoading(true);
     try {
-      await apiFetch("/auth/register", {
+      const data = await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify(form),
       });
       setSuccess(true);
+      if (data.linkedProfile) {
+        setLinkedMsg(t("auth.linkedEscortProfile"));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("auth.somethingWrong"));
     } finally {
@@ -43,9 +47,10 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
 
   const handleClose = (val: boolean) => {
     if (!val) {
-      setForm({ email: "", password: "" });
+      setForm({ email: "", phoneNumber: "", password: "" });
       setError("");
       setSuccess(false);
+      setLinkedMsg("");
     }
     onOpenChange(val);
   };
@@ -63,7 +68,10 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
 
         {success ? (
           <div className="text-center py-4">
-            <p className="text-foreground font-medium mb-4">{t("auth.registerSuccess")}</p>
+            <p className="text-foreground font-medium mb-2">{t("auth.registerSuccess")}</p>
+            {linkedMsg && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-4">{linkedMsg}</p>
+            )}
             <Button onClick={() => { handleClose(false); onSwitchToLogin(); }} className="gold-gradient font-semibold">
               {t("auth.loginNow")}
             </Button>
@@ -73,6 +81,10 @@ const RegisterModal = ({ open, onOpenChange, onSwitchToLogin }: RegisterModalPro
             <div className="space-y-2">
               <Label htmlFor="reg-email">{t("auth.email")}</Label>
               <Input id="reg-email" type="email" placeholder={t("auth.emailPlaceholder")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-background border-border/50" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reg-phone">{t("auth.phone")}</Label>
+              <Input id="reg-phone" type="tel" placeholder="+995 555 123 456" value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} className="bg-background border-border/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reg-password">{t("auth.password")}</Label>

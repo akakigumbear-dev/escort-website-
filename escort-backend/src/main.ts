@@ -33,6 +33,8 @@ async function bootstrap() {
   );
 
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Backend listening on port ${port}. Auth: POST /auth/register, /auth/login, /auth/deposit, /auth/balance (JWT), GET /auth/me (JWT).`);
 }
 void bootstrap();

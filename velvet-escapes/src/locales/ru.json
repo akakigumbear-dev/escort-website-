@@ -101,6 +101,7 @@
     "joinHint": "Присоединяйтесь к премиум-сервису",
     "email": "Email",
     "emailPlaceholder": "your@email.com",
+    "phone": "Номер телефона",
     "phoneNumber": "Телефон",
     "phonePlaceholder": "+7 999 123 45 67",
     "emailPasswordRequired": "Нужны email и пароль.",
@@ -109,7 +110,48 @@
     "alreadyHaveAccount": "Уже есть аккаунт?",
     "editEscortProfile": "Редактировать профиль",
     "myProfile": "Мой профиль",
+    "editProfile": "Редактировать профиль",
     "becomeEscort": "Стать эскортом",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "linkedEscortProfile": "Ваш номер привязан к профилю эскорта. Вы можете управлять им."
+  },
+  "deposit": {
+    "title": "Пополнение",
+    "currentBalance": "Баланс",
+    "amount": "Сумма (₾)",
+    "deposit": "Пополнить",
+    "success": "Баланс обновлён",
+    "close": "Закрыть",
+    "invalidAmount": "Введите сумму",
+    "demoNote": "Демо: баланс для теста."
+  },
+  "account": {
+    "title": "Мой аккаунт",
+    "info": "Информация",
+    "balance": "Баланс",
+    "role": "Роль",
+    "changePassword": "Сменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердите новый пароль",
+    "updatePassword": "Обновить пароль",
+    "passwordChanged": "Пароль успешно изменён!",
+    "fillAllFields": "Заполните все поля.",
+    "passwordMinLength": "Минимум 6 символов.",
+    "passwordsDoNotMatch": "Пароли не совпадают.",
+    "subscriptions": "Мои подписки",
+    "noSubscriptions": "Нет активных подписок.",
+    "unsubscribe": "Отписаться",
+    "loginRequired": "Войдите, чтобы открыть аккаунт."
+  },
+  "vipPurchase": {
+    "title": "VIP статус",
+    "activeUntil": "VIP до",
+    "notActive": "VIP не активен",
+    "pricePerDay": "10 ₾ в день",
+    "days": "Дней",
+    "buy": "Купить VIP",
+    "insufficientBalance": "Недостаточно средств.",
+    "success": "VIP продлён"
   }
 }

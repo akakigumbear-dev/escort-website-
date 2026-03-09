@@ -5,13 +5,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from 'database/entities/user.entity';
+import { EscortProfile } from 'database/entities/escort-profile.entity';
 import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from 'src/Guards/jwt.guard';
 import { JwtStrategy } from 'src/Strategies/jwt.strategy';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, EscortProfile]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

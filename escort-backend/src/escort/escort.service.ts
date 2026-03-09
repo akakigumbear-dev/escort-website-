@@ -287,4 +287,15 @@ export class EscortService {
       items: profiles.map((profile) => mapEscortListItem(profile)),
     };
   }
+
+  async getAllProfileIds(): Promise<{ id: string; updatedAt: string }[]> {
+    const profiles = await this.escortProfileRepo.find({
+      select: ['id', 'updatedAt'],
+      order: { updatedAt: 'DESC' },
+    });
+    return profiles.map((p) => ({
+      id: p.id,
+      updatedAt: (p.updatedAt ?? p.createdAt)?.toISOString?.() ?? new Date().toISOString(),
+    }));
+  }
 }

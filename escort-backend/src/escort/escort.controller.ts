@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   Param,
   ParseUUIDPipe,
   Query,
@@ -28,6 +29,12 @@ export class EscortController {
     private readonly escortService: EscortService,
     private readonly escortImageService: EscortImageService,
   ) {}
+
+  @Get('sitemap-urls')
+  @Header('Cache-Control', 'public, max-age=3600')
+  async getSitemapUrls() {
+    return this.escortService.getAllProfileIds();
+  }
 
   @Get('all')
   getAllEscorts(@Query() query: GetAllEscortsDto) {

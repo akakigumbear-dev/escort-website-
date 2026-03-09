@@ -47,7 +47,7 @@ export class MessagesController {
       file ? `/uploads/dm/${file.filename}` : null,
       file?.originalname || null,
     );
-    this.messagesGateway.emitToUser(body.receiverId, 'message', {
+    const msgPayload = {
       id: msg.id,
       senderId: msg.senderId,
       receiverId: msg.receiverId,
@@ -58,13 +58,39 @@ export class MessagesController {
         msg.createdAt instanceof Date
           ? msg.createdAt.toISOString()
           : msg.createdAt,
+    };
+    this.messagesGateway.emitToUser(body.receiverId, 'message', msgPayload);
+
+    const unread = await this.messagesService.getUnreadCount(body.receiverId);
+    this.messagesGateway.emitToUser(body.receiverId, 'notification', {
+      type: 'new_message',
+      unreadCount: unread,
+      from: req.user.userId,
+      preview: msg.content?.slice(0, 80) || (msg.attachmentPath ? '📎 Attachment' : ''),
     });
+
     return msg;
+  }
+
+  @Get('unread-count')
+  getUnreadCount(@Req() req: { user: { userId: string } }) {
+    return this.messagesService.getUnreadCount(req.user.userId).then((count) => ({ count }));
   }
 
   @Get('conversations')
   getConversations(@Req() req: { user: { userId: string } }) {
     return this.messagesService.getConversations(req.user.userId);
+  }
+
+  @Post('read/:userId')
+  markRead(
+    @Req() req: { user: { userId: string } },
+    @Param('userId', ParseUUIDPipe) otherUserId: string,
+  ) {
+    return this.messagesService.markConversationRead(
+      req.user.userId,
+      otherUserId,
+    );
   }
 
   @Get('with/:userId')

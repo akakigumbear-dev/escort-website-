@@ -101,6 +101,7 @@
     "joinHint": "პრემიუმ კომპანიონების პლატფორმა",
     "email": "Email",
     "emailPlaceholder": "your@email.com",
+    "phone": "ტელეფონის ნომერი",
     "phoneNumber": "ტელეფონი",
     "phonePlaceholder": "+995 5XX XX XX XX",
     "emailPasswordRequired": "საჭიროა email და პაროლი.",
@@ -109,7 +110,48 @@
     "alreadyHaveAccount": "უკვე გაქვთ ანგარიში?",
     "editEscortProfile": "პროფილის რედაქტირება",
     "myProfile": "ჩემი პროფილი",
+    "editProfile": "პროფილის რედაქტირება",
     "becomeEscort": "გახდი ესკორტი",
-    "logout": "გასვლა"
+    "logout": "გასვლა",
+    "linkedEscortProfile": "თქვენი ნომერი უკვე დაკავშირებულია ესკორტის პროფილთან. შეგიძლიათ მართოთ იგი."
+  },
+  "deposit": {
+    "title": "შევსება",
+    "currentBalance": "ბალანსი",
+    "amount": "რაოდენობა (₾)",
+    "deposit": "შევსება",
+    "success": "ბალანსი განახლდა",
+    "close": "დახურვა",
+    "invalidAmount": "შეიყვანეთ სწორი რაოდენობა",
+    "demoNote": "დემო: ბალანსი ტესტირებისთვის."
+  },
+  "account": {
+    "title": "ჩემი ანგარიში",
+    "info": "ანგარიშის ინფორმაცია",
+    "balance": "ბალანსი",
+    "role": "როლი",
+    "changePassword": "პაროლის შეცვლა",
+    "currentPassword": "მიმდინარე პაროლი",
+    "newPassword": "ახალი პაროლი",
+    "confirmPassword": "ახალი პაროლის დადასტურება",
+    "updatePassword": "პაროლის განახლება",
+    "passwordChanged": "პაროლი წარმატებით შეიცვალა!",
+    "fillAllFields": "შეავსეთ ყველა ველი.",
+    "passwordMinLength": "ახალი პაროლი მინიმუმ 6 სიმბოლო უნდა იყოს.",
+    "passwordsDoNotMatch": "პაროლები არ ემთხვევა.",
+    "subscriptions": "ჩემი გამოწერები",
+    "noSubscriptions": "აქტიური გამოწერები არ გაქვთ.",
+    "unsubscribe": "გაუქმება",
+    "loginRequired": "ანგარიშზე წვდომისთვის გაიარეთ ავტორიზაცია."
+  },
+  "vipPurchase": {
+    "title": "VIP სტატუსი",
+    "activeUntil": "VIP ვადა",
+    "notActive": "VIP არ არის აქტიური",
+    "pricePerDay": "10 ₾ დღეში",
+    "days": "დღეები",
+    "buy": "VIP-ის ყიდვა",
+    "insufficientBalance": "არასაკმარისი ბალანსი.",
+    "success": "VIP გაგრძელდა"
   }
 }
