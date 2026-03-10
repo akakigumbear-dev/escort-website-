@@ -3,7 +3,6 @@ import { API_BASE_URL } from "./api";
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("auth_token");
   return {
-    "ngrok-skip-browser-warning": "true",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
@@ -11,6 +10,8 @@ function getAuthHeaders(): HeadersInit {
 export interface Conversation {
   userId: string;
   email: string;
+  lastSeen?: string | null;
+  isOnline?: boolean;
   lastMessage: { content: string | null; hasAttachment: boolean; createdAt: string };
 }
 

@@ -24,7 +24,8 @@ const PAGE_LOAD_WAIT_MS = 15000;
 const ELEMENT_WAIT_MS = 10000;
 const PROFILE_WAIT_AFTER_OPEN_MS = 2000;
 const BETWEEN_ITEMS_MS = 1200;
-const BETWEEN_PAGES_MS = 2000;
+const BETWEEN_PAGES_MS = 2500;
+const MAX_PAGES = parseInt(process.env.MAX_PAGES || "0", 10); // 0 = unlimited
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -990,99 +991,131 @@ async function getCurrentPageKey(driver) {
   }
 }
 
-async function findNextPageElement(driver) {
-  const candidateSelectors = [
-    'a[rel="next"]',
-    ".pagination a.next",
-    ".pagination .next a",
-    ".pagination li.next a",
-    ".pager a.next",
-    'a[aria-label="Next"]',
-  ];
+function extractPageNumber(url) {
+  const m = url.match(/\/page\/(\d+)\/?/);
+  return m ? parseInt(m[1], 10) : 1;
+}
 
-  for (const selector of candidateSelectors) {
-    try {
-      const el = await safeFindElement(driver, By.css(selector));
-      if (el) {
-        const displayed = await el.isDisplayed().catch(() => true);
-        if (displayed) return el;
-      }
-    } catch {}
-  }
+function buildPageUrl(baseUrl, pageNum) {
+  const base = baseUrl.replace(/\/page\/\d+\/?/, "").replace(/\/$/, "");
+  return pageNum <= 1 ? `${base}/` : `${base}/page/${pageNum}/`;
+}
 
-  const links = await driver.findElements(By.css("a"));
+async function findNextPageHref(driver) {
+  return await driver.executeScript(() => {
+    const selectors = [
+      'a[rel="next"]',
+      'a.next.page-numbers',
+      'a.nextpostslink',
+      '.wp-pagenavi a.nextpostslink',
+      '.pagination a.next',
+      '.pagination .next a',
+      '.pagination li.next a',
+      '.nav-links a.next',
+      '.pager a.next',
+      'a[aria-label="Next"]',
+      'a[aria-label="next"]',
+      '.page-numbers.next',
+    ];
 
-  for (const link of links) {
-    try {
-      const text = (await link.getText()).trim().toLowerCase();
-      const href = await link.getAttribute("href");
-      const cls = ((await link.getAttribute("class")) || "").toLowerCase();
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el && el.href) return el.href;
+    }
 
+    for (const a of document.querySelectorAll("a")) {
+      const text = (a.innerText || a.textContent || "").trim().toLowerCase();
+      const cls = (a.className || "").toLowerCase();
+      const href = a.href || a.getAttribute("href") || "";
+      if (
+        !href ||
+        href.startsWith("javascript") ||
+        href === "#" ||
+        href === window.location.href
+      )
+        continue;
       if (
         text === "next" ||
         text === ">" ||
         text === "»" ||
+        text === "→" ||
         text.includes("შემდეგ") ||
+        text.includes("следующ") ||
         cls.includes("next")
       ) {
-        const displayed = await link.isDisplayed().catch(() => true);
-        if (displayed && href) return link;
+        return href;
       }
-    } catch {}
-  }
+    }
 
-  return null;
+    return null;
+  });
 }
 
-async function goToNextPage(driver, previousPageKey) {
-  const nextEl = await findNextPageElement(driver);
-  if (!nextEl) return false;
+async function goToNextPage(driver, previousUrl) {
+  const currentPageNum = extractPageNumber(previousUrl);
+  const nextPageNum = currentPageNum + 1;
+  const candidateUrl = buildPageUrl(SITE_URL, nextPageNum);
 
-  console.log("Trying to open next page...");
+  console.log(`\nPagination: current page ${currentPageNum}, trying page ${nextPageNum} → ${candidateUrl}`);
 
-  let nextHref = "";
+  // 1. Try direct URL navigation first (most reliable for WordPress sites)
   try {
-    nextHref = await nextEl.getAttribute("href");
-  } catch {}
-
-  try {
-    await driver.executeScript(
-      "arguments[0].scrollIntoView({block:'center'});",
-      nextEl
-    );
-    await sleep(500);
-    await driver.executeScript("arguments[0].click();", nextEl);
-  } catch (err) {
-    console.log("Next page click failed, trying direct navigation:", err.message);
-
-    if (nextHref) {
-      await driver.get(nextHref);
-    } else {
-      return false;
-    }
-  }
-
-  await waitUntilPageReady(driver);
-  await sleep(BETWEEN_PAGES_MS);
-
-  let currentPageKey = await getCurrentPageKey(driver);
-
-  if (currentPageKey === previousPageKey && nextHref) {
-    await driver.get(nextHref);
+    await driver.get(candidateUrl);
     await waitUntilPageReady(driver);
     await sleep(BETWEEN_PAGES_MS);
-    currentPageKey = await getCurrentPageKey(driver);
+
+    const hasEscorts = await driver.executeScript(() => {
+      return (
+        document.querySelectorAll('a[href*="/escort/"]').length > 2 ||
+        document.querySelectorAll("div.girl").length > 0
+      );
+    });
+
+    if (hasEscorts) {
+      const newUrl = await driver.getCurrentUrl();
+      if (newUrl !== previousUrl) {
+        console.log(`Direct URL pagination succeeded: ${newUrl}`);
+        await waitForEscortListing(driver);
+        return true;
+      }
+    }
+    console.log("Direct URL had no escort links, trying element-based next...");
+  } catch (err) {
+    console.log("Direct URL navigation failed:", err.message);
   }
 
+  // 2. Go back to previous page and try clicking the next element
+  await driver.get(previousUrl);
+  await waitUntilPageReady(driver);
+  await sleep(1500);
   await waitForEscortListing(driver);
 
-  if (currentPageKey === previousPageKey) {
-    console.log("Next page did not change.");
+  const nextHref = await findNextPageHref(driver);
+  if (!nextHref) {
+    console.log("No next-page element found on listing page. Scraping finished.");
     return false;
   }
 
-  console.log("Moved to next page:", currentPageKey);
-  return true;
+  console.log(`Found next page link: ${nextHref}`);
+
+  try {
+    await driver.get(nextHref);
+    await waitUntilPageReady(driver);
+    await sleep(BETWEEN_PAGES_MS);
+
+    const newUrl = await driver.getCurrentUrl();
+    if (newUrl === previousUrl) {
+      console.log("URL did not change after next-page click. Finished.");
+      return false;
+    }
+
+    await waitForEscortListing(driver);
+    console.log(`Moved to next page: ${newUrl}`);
+    return true;
+  } catch (err) {
+    console.log("Next page navigation failed:", err.message);
+    return false;
+  }
 }
 
 async function main() {
@@ -1098,46 +1131,56 @@ async function main() {
 
     const mainHandle = await driver.getWindowHandle();
 
-    const processedPageKeys = new Set();
+    const processedPageUrls = new Set();
     const processedModelUrls = new Set();
+    let pageCount = 0;
 
     while (true) {
-      const pageKey = await getCurrentPageKey(driver);
+      const pageUrl = await getCurrentPageKey(driver);
 
-      if (processedPageKeys.has(pageKey)) {
-        console.log(
-          "This page was already processed. Stopping pagination loop."
-        );
+      if (processedPageUrls.has(pageUrl)) {
+        console.log("This page was already processed. Stopping pagination loop.");
         break;
       }
 
-      processedPageKeys.add(pageKey);
+      processedPageUrls.add(pageUrl);
+      pageCount++;
 
-      console.log(`\nProcessing page: ${pageKey}\n`);
+      const pageNum = extractPageNumber(pageUrl);
+      console.log(`\n========== Page ${pageNum} (visit #${pageCount}) ==========`);
+      console.log(`URL: ${pageUrl}\n`);
       await sleep(1500);
 
       const modelLinks = await collectModelLinks(driver);
       const newLinks = modelLinks.filter((url) => !processedModelUrls.has(url));
 
-      if (newLinks.length === 0) {
-        console.log("No new model links found on this page.");
-      }
+      console.log(
+        `Found ${modelLinks.length} links on page, ${newLinks.length} new (${modelLinks.length - newLinks.length} already processed)`
+      );
 
       for (let i = 0; i < newLinks.length; i++) {
         const url = newLinks[i];
         processedModelUrls.add(url);
-
         await processSingleModel(driver, mainHandle, url, i + 1, newLinks.length);
         await sleep(BETWEEN_ITEMS_MS);
       }
 
-      const moved = await goToNextPage(driver, pageKey);
+      if (MAX_PAGES > 0 && pageCount >= MAX_PAGES) {
+        console.log(`Reached MAX_PAGES limit (${MAX_PAGES}). Stopping.`);
+        break;
+      }
+
+      const moved = await goToNextPage(driver, pageUrl);
 
       if (!moved) {
         console.log("No next page found. Scraping finished.");
         break;
       }
     }
+
+    console.log(
+      `\nScraping complete. Pages scraped: ${pageCount}. Total models processed: ${processedModelUrls.size}.`
+    );
 
     console.log(`Saved file: ${OUTPUT_FILE}`);
   } catch (err) {

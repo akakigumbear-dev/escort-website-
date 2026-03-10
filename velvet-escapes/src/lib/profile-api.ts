@@ -3,7 +3,6 @@ import { API_BASE_URL } from "./api";
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem("auth_token");
   return {
-    "ngrok-skip-browser-warning": "true",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }

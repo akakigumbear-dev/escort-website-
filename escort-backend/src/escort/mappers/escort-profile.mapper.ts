@@ -63,7 +63,6 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
 
   return {
     id: profile.id,
-    ownerUserId,
     phoneNumber: profile.phoneNumber,
     username: profile.username,
     city: profile.city,
@@ -96,6 +95,8 @@ export function mapEscortProfile(profile: EscortProfileWithRelations) {
     reviewsCount,
     averageRating,
 
+    lastSeen: (profile as any).lastSeen ?? null,
+    isOnline: (profile as any).isOnline ?? false,
     exclusiveMediaCount,
     subscribed: (profile as any).subscribed ?? false,
     subscriptionPriceGel:

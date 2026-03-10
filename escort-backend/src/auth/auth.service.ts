@@ -185,26 +185,6 @@ export class AuthService {
     };
   }
 
-  async deposit(userId: string, amount: number) {
-    if (amount <= 0) {
-      throw new BadRequestException('Amount must be positive');
-    }
-
-    await this.usersRepo
-      .createQueryBuilder()
-      .update(User)
-      .set({ balance: () => `balance + :amount` })
-      .setParameter('amount', amount)
-      .where('id = :id', { id: userId })
-      .execute();
-
-    const user = await this.usersRepo.findOne({
-      where: { id: userId },
-    });
-
-    return { balance: Number(user!.balance) };
-  }
-
   async changePassword(
     userId: string,
     currentPassword: string,
@@ -249,10 +229,10 @@ export class AuthService {
       resetPasswordExpiresAt: expiresAt,
     } as any);
 
-    return {
-      ok: true,
-      resetToken: token,
-      expiresAt,
-    };
+    // TODO: send token via email/SMS instead of logging
+    // For now, log it server-side only so it's never exposed to clients
+    console.log(`[RESET] token for ${email}: ${token} (expires ${expiresAt.toISOString()})`);
+
+    return { ok: true };
   }
 }

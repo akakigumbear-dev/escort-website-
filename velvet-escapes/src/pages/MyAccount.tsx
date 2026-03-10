@@ -17,6 +17,12 @@ import {
   Mail,
   Phone,
   Wallet,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Banknote,
 } from "lucide-react";
 
 interface SubscriptionItem {
@@ -26,6 +32,16 @@ interface SubscriptionItem {
   status: string;
   startDate: string;
   endDate: string | null;
+}
+
+interface TransactionItem {
+  id: string;
+  amount: number;
+  status: string;
+  trackId: string | null;
+  cryptoCurrency: string | null;
+  cryptoAmount: number | null;
+  createdAt: string;
 }
 
 export default function MyAccount() {
@@ -45,12 +61,20 @@ export default function MyAccount() {
   const [subsLoading, setSubsLoading] = useState(true);
   const [unsubbing, setUnsubbing] = useState<string | null>(null);
 
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [txLoading, setTxLoading] = useState(true);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     getMySubscriptions()
       .then((data) => setSubs(data as SubscriptionItem[]))
       .catch(() => setSubs([]))
       .finally(() => setSubsLoading(false));
+
+    apiFetch("/payment/transactions")
+      .then((data) => setTransactions(Array.isArray(data) ? data : []))
+      .catch(() => setTransactions([]))
+      .finally(() => setTxLoading(false));
   }, [isAuthenticated]);
 
   const handleChangePassword = async () => {
@@ -209,6 +233,52 @@ export default function MyAccount() {
           >
             {pwLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("account.updatePassword")}
           </button>
+        </div>
+
+        {/* Transactions */}
+        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+          <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+            <Banknote className="h-5 w-5 text-primary" /> {t("account.transactions")}
+          </h2>
+
+          {txLoading ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : transactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">{t("account.noTransactions")}</p>
+          ) : (
+            <div className="space-y-2">
+              {transactions.map((tx) => {
+                const isPaid = tx.status === "paid";
+                const isPending = tx.status === "pending" || tx.status === "paying";
+                const isFailed = tx.status === "expired" || tx.status === "failed";
+                return (
+                  <div
+                    key={tx.id}
+                    className="flex items-center gap-3 rounded-lg border border-border/30 bg-muted/30 px-4 py-3"
+                  >
+                    <div className={`flex-shrink-0 rounded-full p-1.5 ${isPaid ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : isPending ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-destructive/20 text-destructive"}`}>
+                      {isPaid ? <ArrowDownCircle className="h-4 w-4" /> : isPending ? <Clock className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-foreground">+{Number(tx.amount).toFixed(2)} ₾</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${isPaid ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : isPending ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-destructive/15 text-destructive"}`}>
+                          {tx.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <CalendarDays className="h-3 w-3" />
+                        <span>{new Date(tx.createdAt).toLocaleString()}</span>
+                        {tx.cryptoCurrency && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{tx.cryptoCurrency}{tx.cryptoAmount ? ` ${tx.cryptoAmount}` : ""}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Subscriptions */}

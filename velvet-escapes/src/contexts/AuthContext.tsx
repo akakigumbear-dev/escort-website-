@@ -116,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
+    window.dispatchEvent(new Event("auth-logout"));
     setUser(null);
     setToken(null);
     setEscortProfile(null);

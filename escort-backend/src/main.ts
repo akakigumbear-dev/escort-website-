@@ -3,8 +3,34 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import * as express from 'express';
+import helmet from 'helmet';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', true);
+  expressApp.disable('x-powered-by');
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https://api.elitescort.fun'],
+          connectSrc: ["'self'", 'https://api.elitescort.fun', 'wss://api.elitescort.fun'],
+        },
+      },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
 
   const allowedOrigins = (process.env.CORS_ORIGIN || '*')
     .split(',')
@@ -21,7 +47,7 @@ async function bootstrap() {
       else cb(null, false);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,ngrok-skip-browser-warning,hmac',
+    allowedHeaders: 'Content-Type,Authorization,hmac',
     credentials: true,
   });
 

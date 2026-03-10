@@ -83,6 +83,8 @@ export default function EscortDashboard() {
   const [vipLoading, setVipLoading] = useState(false);
   const [vipError, setVipError] = useState("");
   const [vipSuccess, setVipSuccess] = useState(false);
+  const [subPriceSaving, setSubPriceSaving] = useState(false);
+  const [subPriceSaved, setSubPriceSaved] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["escort-profile"],
@@ -200,7 +202,7 @@ export default function EscortDashboard() {
       gender: formState.gender || undefined,
       services: formState.services,
       languages: formState.languages,
-      subscriptionPriceGel: formState.subscriptionPriceGel ? Number(formState.subscriptionPriceGel) : undefined,
+      subscriptionPriceGel: formState.subscriptionPriceGel ? Number(formState.subscriptionPriceGel) : null,
     });
   };
 
@@ -254,6 +256,22 @@ export default function EscortDashboard() {
   const balance = Number(user?.balance ?? 0);
   const vipCost = vipDays * VIP_PRICE_PER_DAY;
   const canAffordVip = balance >= vipCost;
+
+  const handleSaveSubscriptionPrice = async () => {
+    setSubPriceSaving(true);
+    setSubPriceSaved(false);
+    try {
+      const data = await updateProfile({
+        subscriptionPriceGel: formState.subscriptionPriceGel ? Number(formState.subscriptionPriceGel) : null,
+      });
+      setEscortProfile(data as AuthEscortProfile);
+      queryClient.invalidateQueries({ queryKey: ["escort-profile"] });
+      setSubPriceSaved(true);
+      setTimeout(() => setSubPriceSaved(false), 2000);
+    } catch {} finally {
+      setSubPriceSaving(false);
+    }
+  };
 
   const handlePurchaseVip = async () => {
     setVipError("");
@@ -341,6 +359,36 @@ export default function EscortDashboard() {
               <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
             ) : (
               <>
+                {/* Subscription Price — prominent card at top with own save */}
+                <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1">
+                      <h2 className="font-display text-base font-semibold flex items-center gap-2 mb-1">
+                        <Banknote className="h-5 w-5 text-primary" /> Subscription Price
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Set the monthly price visitors pay to subscribe to your exclusive content.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder="29"
+                        value={formState.subscriptionPriceGel}
+                        onChange={(e) => setFormState((s) => ({ ...s, subscriptionPriceGel: e.target.value }))}
+                        className="w-28 h-10 text-center text-lg font-semibold"
+                      />
+                      <span className="text-sm font-medium text-muted-foreground">₾/mo</span>
+                      <Button onClick={handleSaveSubscriptionPrice} disabled={subPriceSaving} className="gold-gradient h-10">
+                        {subPriceSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                  {subPriceSaved && <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">Subscription price saved.</p>}
+                </div>
+
                 <form onSubmit={handleSaveProfile} className="space-y-5 rounded-xl border border-border/50 bg-card p-6">
                   <h2 className="font-display text-lg font-semibold">Profile Details</h2>
                   <div className="grid grid-cols-2 gap-4">
@@ -432,10 +480,6 @@ export default function EscortDashboard() {
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3 text-primary" /> Subscription price (₾/month)</Label>
-                    <Input type="number" min={0} step={1} placeholder="29" value={formState.subscriptionPriceGel} onChange={(e) => setFormState((s) => ({ ...s, subscriptionPriceGel: e.target.value }))} className="max-w-[140px]" />
                   </div>
                   {updateMutation.isError && <p className="text-sm text-destructive">{updateMutation.error.message}</p>}
                   {saveSuccess && <p className="text-sm text-emerald-600">Saved.</p>}

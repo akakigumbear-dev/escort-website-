@@ -70,19 +70,107 @@ function extractName(raw) {
   return first || raw.split(/\s+/)[0] || 'Unknown';
 }
 
-/** "23 წლის გოგო : saburtalo" → "saburtalo" */
-function extractCity(address) {
-  if (!address) return 'unknown';
-  const parts = address.split(':');
-  if (parts.length >= 2) return parts[parts.length - 1].trim().split(/\s+/)[0] || 'unknown';
-  return address.trim().split(/\s+/)[0] || 'unknown';
+/**
+ * Extract clean city from the scraped `city` or `address` field.
+ * "saburtalo ქალაქი" → "saburtalo"
+ * "23 წლის გოგო : saburtalo" → "saburtalo"
+ * "other ქალაქი" → "tbilisi"
+ */
+function extractCity(model) {
+  // Prefer the `city` field, fallback to `address`
+  let raw = (model.city || model['ქალაქი'] || '').trim();
+
+  if (raw) {
+    // Strip trailing "ქალაქი" (means "city")
+    raw = raw.replace(/\s*ქალაქი\s*$/i, '').trim();
+  }
+
+  if (!raw || raw === 'other') {
+    // Try extracting from address: "23 წლის გოგო : saburtalo"
+    const addr = model.address || model['მისამართი'] || '';
+    const parts = addr.split(':');
+    if (parts.length >= 2) {
+      raw = parts[parts.length - 1].trim().split(/\s+/)[0] || '';
+    }
+  }
+
+  if (!raw || raw === 'other') return 'tbilisi';
+  return raw.toLowerCase();
 }
 
-/** "300 LARI" → 300, "1 LARI" → 1 */
+/**
+ * Detect ethnicity from description text and name.
+ * Returns a valid DB enum value or null.
+ */
+function detectEthnicity(model) {
+  const desc = (model.description || model['აღწერა'] || '').toLowerCase();
+  const name = (model.name || model['სახელი'] || '').toLowerCase();
+  const combined = `${desc} ${name}`;
+
+  const patterns = [
+    { keywords: ['asia', 'აზი', 'asian', 'აზიელი'], value: 'აზიელი' },
+    { keywords: ['ukrain', 'უკრაინ', 'україн'], value: 'უკრაინელი' },
+    { keywords: ['russian', 'русск', 'რუს', 'россия', 'москва', 'из росси'], value: 'რუსი' },
+    { keywords: ['turkey', 'türk', 'თურქ', 'turkish'], value: 'თურქი' },
+    { keywords: ['azerbaij', 'azərbaycan', 'აზერბაიჯან'], value: 'აზერბაიჯანელი' },
+    { keywords: ['europe', 'ევროპ', 'european'], value: 'ევროპელი' },
+    { keywords: ['latin', 'ლათინ', 'latina', 'latino'], value: 'ლათინო' },
+    { keywords: ['arab', 'არაბ', 'middle east', 'აღმოსავლ'], value: 'ახლო აღმოსავლელი' },
+    { keywords: ['mixed', 'შერეულ'], value: 'შერეული' },
+    { keywords: ['georgia', 'საქართველ', 'ქართველ'], value: 'ქართველი' },
+  ];
+
+  for (const { keywords, value } of patterns) {
+    for (const kw of keywords) {
+      if (combined.includes(kw)) return value;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect languages from description text (presence of script/keywords).
+ * Returns array of valid DB enum values.
+ */
+function detectLanguages(model) {
+  const desc = (model.description || model['აღწერა'] || '').toLowerCase();
+  const langs = [];
+
+  // Georgian script
+  if (/[\u10D0-\u10FF]{3,}/.test(desc)) langs.push('ქართული');
+  // Russian script (Cyrillic)
+  if (/[а-яё]{3,}/i.test(desc)) langs.push('რუსული');
+  // English (Latin words)
+  if (/[a-z]{4,}/i.test(desc)) langs.push('ინგლისური');
+  // Turkish characters
+  if (/[şçğıüö]/i.test(desc)) langs.push('თურქული');
+  // Ukrainian
+  if (/[іїєґ]/i.test(desc)) langs.push('უკრაინული');
+
+  return langs;
+}
+
+/** "300 LARI" → 300, "1 LARI" → 1, "11111111111 LARI" → null (garbage) */
 function parseLari(str) {
   if (!str) return null;
   const m = str.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : null;
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  // sanity cap: real prices are under 100 000 GEL
+  if (isNaN(n) || n > 100000) return null;
+  return n;
+}
+
+/**
+ * Clamp a numeric field to a sane range, returns null if out of range or not a number.
+ * Prevents "value out of range for type integer" errors from garbage scraped data.
+ */
+function safeInt(value, min, max) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = parseInt(String(value).replace(/\D/g, ''), 10);
+  if (isNaN(n) || n < min || n > max) return null;
+  return n;
 }
 
 /** Map Georgian services array to enum values */
@@ -114,7 +202,12 @@ async function main() {
   await client.connect();
   console.log(`Connected to ${DB.host}:${DB.port}/${DB.database}`);
 
-  let created = 0, updated = 0, skipped = 0;
+  // Wipe all escort-related data before re-import
+  console.log('Cleaning database...');
+  await client.query('TRUNCATE escort_pictures, escort_prices, escort_reviews, escort_subscriber_photos, subscriptions, escort_profiles CASCADE');
+  console.log('Database cleaned. Starting import...\n');
+
+  let created = 0, skipped = 0;
   const usedNames = new Map();
 
   for (const model of models) {
@@ -122,8 +215,13 @@ async function main() {
     if (!phone) { skipped++; continue; }
 
     let baseName = extractName(model.name);
-    const city = extractCity(model.address);
-    const services = mapServices(model.services || []);
+    const city = extractCity(model);
+    const services = mapServices(model.services || model['სერვისები'] || []);
+    const height = safeInt(model.height || model['სიმაღლე'], 100, 220);
+    const weight = safeInt(model.weight || model['წონა'],  30, 200);
+    const age    = safeInt(model.age    || model['გოგო'],   18,  80);
+    const ethnicity = detectEthnicity(model);
+    const languages = detectLanguages(model);
 
     // Ensure unique username
     const nameKey = baseName.toLowerCase();
@@ -132,75 +230,36 @@ async function main() {
     const username = count > 1 ? `${baseName}-${count}` : baseName;
 
     try {
-      // Check if profile exists by phone
-      const existing = await client.query(
-        'SELECT id FROM escort_profiles WHERE "phoneNumber" = $1',
-        [phone]
-      );
-
-      let profileId;
-
-      if (existing.rows.length > 0) {
-        profileId = existing.rows[0].id;
-        await client.query(`
-          UPDATE escort_profiles SET
-            username = $1,
-            city = $2,
-            address = $3,
-            services = $4,
-            height = $5,
-            weight = $6,
-            age = $7,
-            bio = $8,
-            "viewCount" = $9,
-            gender = 'მდედრობითი',
-            "isVerified" = $10,
-            "updatedAt" = NOW()
-          WHERE id = $11
-        `, [
-          username,
-          city,
-          city,
-          pgEnumArray(services),
-          model.height || null,
-          model.weight || null,
-          model.age || null,
-          model.description || null,
-          model.viewCount || 0,
-          model.badge === 'TOP',
-          profileId,
-        ]);
-        updated++;
-      } else {
-        const res = await client.query(`
-          INSERT INTO escort_profiles (
-            id, "phoneNumber", username, city, address, services,
-            height, weight, age, gender, bio,
-            "viewCount", "isVerified", "createdAt", "updatedAt"
-          ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, $5,
-            $6, $7, $8, 'მდედრობითი', $9,
-            $10, $11, NOW(), NOW()
-          ) RETURNING id
-        `, [
-          phone,
-          username,
-          city,
-          city,
-          pgEnumArray(services),
-          model.height || null,
-          model.weight || null,
-          model.age || null,
-          model.description || null,
-          model.viewCount || 0,
-          model.badge === 'TOP',
-        ]);
-        profileId = res.rows[0].id;
-        created++;
-      }
+      const res = await client.query(`
+        INSERT INTO escort_profiles (
+          id, "phoneNumber", username, city, address, services,
+          height, weight, age, gender, bio,
+          "viewCount", "isVerified", ethnicity, languages,
+          "createdAt", "updatedAt"
+        ) VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5,
+          $6, $7, $8, 'მდედრობითი', $9,
+          $10, $11, $12, $13, NOW(), NOW()
+        ) RETURNING id
+      `, [
+        phone,
+        username,
+        city,
+        city,
+        pgEnumArray(services),
+        height,
+        weight,
+        age,
+        model.description || model['აღწერა'] || null,
+        model.viewCount || 0,
+        model.badge === 'TOP',
+        ethnicity,
+        pgEnumArray(languages),
+      ]);
+      const profileId = res.rows[0].id;
+      created++;
 
       // ── Pictures ──
-      await client.query('DELETE FROM escort_pictures WHERE "profileId" = $1', [profileId]);
       const pics = model.pictures || [];
       for (let i = 0; i < pics.length; i++) {
         const picPath = `/uploads/${pics[i]}`;
@@ -212,8 +271,6 @@ async function main() {
       }
 
       // ── Prices ──
-      await client.query('DELETE FROM escort_prices WHERE "profileId" = $1', [profileId]);
-
       const incall = model.pricingIncall || {};
       if (Object.keys(incall).length > 0) {
         await client.query(`
@@ -246,6 +303,8 @@ async function main() {
         ]);
       }
 
+      if (created % 50 === 0) console.log(`  ... ${created} profiles imported`);
+
     } catch (err) {
       console.error(`  SKIP ${phone} (${username}): ${err.message}`);
       skipped++;
@@ -253,7 +312,7 @@ async function main() {
   }
 
   await client.end();
-  console.log(`\nDone. Created: ${created}, Updated: ${updated}, Skipped: ${skipped}`);
+  console.log(`\nDone. Created: ${created}, Skipped: ${skipped}`);
 }
 
 main().catch(err => {

@@ -63,13 +63,26 @@ export class EscortService {
     (profile as any).reviews = reviews;
 
     let ownerUserId: string | null = null;
+    let lastSeen: Date | null = null;
+    let isOnline = false;
     try {
       const raw = await this.escortProfileRepo
         .createQueryBuilder('p')
-        .select('p.userId', 'userId')
+        .leftJoin('p.user', 'u')
+        .select([
+          'p.userId AS "userId"',
+          'u.lastSeen AS "lastSeen"',
+          'u.isOnline AS "isOnline"',
+        ])
         .where('p.id = :id', { id })
-        .getRawOne<{ userId: string }>();
+        .getRawOne<{
+          userId: string;
+          lastSeen: Date | null;
+          isOnline: boolean;
+        }>();
       ownerUserId = raw?.userId ?? null;
+      lastSeen = raw?.lastSeen ?? null;
+      isOnline = raw?.isOnline ?? false;
     } catch {
       // column may not exist in DB
     }
@@ -123,6 +136,8 @@ export class EscortService {
       subscribed,
       ownerUserId,
       subscriptionPriceGel,
+      lastSeen,
+      isOnline,
     };
 
     return mapEscortProfile(profileForMap as any);
@@ -138,7 +153,9 @@ export class EscortService {
     const qb = this.escortProfileRepo
       .createQueryBuilder('profile')
       .leftJoinAndSelect('profile.pictures', 'pictures')
-      .leftJoinAndSelect('profile.reviews', 'reviews');
+      .leftJoinAndSelect('profile.reviews', 'reviews')
+      .leftJoin('profile.user', 'owner')
+      .addSelect(['owner.lastSeen', 'owner.isOnline']);
 
     if (query.search?.trim()) {
       const term = `%${query.search.trim().replace(/%/g, '\\%')}%`;
@@ -233,7 +250,13 @@ export class EscortService {
     const [profiles, total] = await qb.getManyAndCount();
 
     return {
-      items: profiles.map((profile) => mapEscortListItem(profile)),
+      items: profiles.map((profile) =>
+        mapEscortListItem(
+          profile,
+          (profile as any).user?.lastSeen ?? null,
+          (profile as any).user?.isOnline ?? false,
+        ),
+      ),
       meta: {
         page,
         limit,
@@ -260,7 +283,7 @@ export class EscortService {
 
   async getTopViewedEscorts() {
     const profiles = await this.escortProfileRepo.find({
-      relations: { pictures: true },
+      relations: { pictures: true, user: true },
       order: {
         viewCount: 'DESC',
       },
@@ -268,13 +291,19 @@ export class EscortService {
     });
 
     return {
-      items: profiles.map((profile) => mapEscortListItem(profile)),
+      items: profiles.map((profile) =>
+        mapEscortListItem(
+          profile,
+          profile.user?.lastSeen ?? null,
+          profile.user?.isOnline ?? false,
+        ),
+      ),
     };
   }
 
   async getVipEscorts() {
     const profiles = await this.escortProfileRepo.find({
-      relations: { pictures: true, reviews: true },
+      relations: { pictures: true, reviews: true, user: true },
       where: {
         vipUntil: MoreThan(new Date()),
       },
@@ -284,7 +313,35 @@ export class EscortService {
     });
 
     return {
-      items: profiles.map((profile) => mapEscortListItem(profile)),
+      items: profiles.map((profile) =>
+        mapEscortListItem(
+          profile,
+          profile.user?.lastSeen ?? null,
+          profile.user?.isOnline ?? false,
+        ),
+      ),
+    };
+  }
+
+  async getOnlineEscorts() {
+    const profiles = await this.escortProfileRepo
+      .createQueryBuilder('profile')
+      .leftJoinAndSelect('profile.pictures', 'pictures')
+      .leftJoin('profile.user', 'owner')
+      .addSelect(['owner.lastSeen', 'owner.isOnline'])
+      .where('owner.isOnline = true')
+      .orderBy('owner.lastSeen', 'DESC')
+      .take(10)
+      .getMany();
+
+    return {
+      items: profiles.map((profile) =>
+        mapEscortListItem(
+          profile,
+          profile.user?.lastSeen ?? null,
+          profile.user?.isOnline ?? false,
+        ),
+      ),
     };
   }
 

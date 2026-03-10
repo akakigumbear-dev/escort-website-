@@ -73,6 +73,9 @@
     "clear": "გასუფთავება",
     "copyright": "© {{year}} Élite Companions. ყველა უფლება დაცულია."
   },
+  "onlineNow": {
+    "title": "ონლაინ ახლა"
+  },
   "topViewed": {
     "title": "ტოპ ნახვები",
     "noData": "ჯერ მონაცემები არ არის"
@@ -138,6 +141,8 @@
     "fillAllFields": "შეავსეთ ყველა ველი.",
     "passwordMinLength": "ახალი პაროლი მინიმუმ 6 სიმბოლო უნდა იყოს.",
     "passwordsDoNotMatch": "პაროლები არ ემთხვევა.",
+    "transactions": "შეტანის ისტორია",
+    "noTransactions": "ჯერ შეტანა არ გაკეთებულა.",
     "subscriptions": "ჩემი გამოწერები",
     "noSubscriptions": "აქტიური გამოწერები არ გაქვთ.",
     "unsubscribe": "გაუქმება",
@@ -152,5 +157,12 @@
     "buy": "VIP-ის ყიდვა",
     "insufficientBalance": "არასაკმარისი ბალანსი.",
     "success": "VIP გაგრძელდა"
+  },
+  "online": {
+    "now": "ონლაინ",
+    "justNow": "ახლახანს",
+    "minutesAgo": "{{count}} წთ წინ",
+    "hoursAgo": "{{count}}სთ წინ",
+    "daysAgo": "{{count}}დ წინ"
   }
 }

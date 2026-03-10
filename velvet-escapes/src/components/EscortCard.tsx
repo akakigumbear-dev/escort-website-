@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, ShieldCheck, MapPin } from "lucide-react";
 import type { EscortListItem } from "@/lib/escorts-api";
 import { buildImageUrl, PLACEHOLDER_THUMBNAIL } from "@/lib/api";
+import { OnlineDot } from "@/components/OnlineStatus";
 
 interface EscortCardProps {
   escort: EscortListItem;
@@ -48,7 +49,8 @@ const EscortCard = ({ escort, compact }: EscortCardProps) => {
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3">
-        <h3 className="font-display text-lg font-semibold text-foreground">
+        <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-1.5">
+          <OnlineDot lastSeen={escort.lastSeen} isOnline={escort.isOnline} />
           {escort.username}
         </h3>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

@@ -48,10 +48,7 @@ export class ProfileController {
     return this.escort.activateEscortProfile(req.user.userId);
   }
 
-  @Post('balance')
-  addBalance(@Req() req: any, @Body() body: { amount: number }) {
-    return this.escort.addBalance(req.user.userId, body.amount);
-  }
+  // Direct balance endpoint removed — credits flow through OxaPay webhook only.
 
   @Post('vip/purchase')
   purchaseVipProfile(@Req() req: any, @Body() dto: PurchaseVipDto) {

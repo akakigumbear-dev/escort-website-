@@ -6,9 +6,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
-    # Expose on all interfaces so TablePlus can connect to server IP. Restrict with: ufw delete allow 5432/tcp && ufw allow from YOUR_IP to any port 5432 && ufw reload
+    # Localhost only — use SSH tunnel for remote DB access: ssh -L 5432:127.0.0.1:5432 root@your-server
     ports:
-      - "${DB_PORT}:5432"
+      - "127.0.0.1:${DB_PORT}:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
@@ -53,6 +53,27 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
+
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      SITE_URL: ${SITE_URL}
+      API_BASE_URL: ${API_BASE_URL}
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - ./escort-backend/uploads:/app/uploads:ro
 
 volumes:
   pgdata:

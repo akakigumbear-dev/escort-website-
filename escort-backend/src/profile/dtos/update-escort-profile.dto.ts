@@ -70,7 +70,5 @@ export class UpdateEscortProfileDto {
   languages?: Language[];
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  subscriptionPriceGel?: number;
+  subscriptionPriceGel?: number | null;
 }

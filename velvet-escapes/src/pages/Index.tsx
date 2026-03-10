@@ -2,6 +2,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import VIPCarousel from "@/components/VIPCarousel";
 import AllEscorts from "@/components/AllEscorts";
+import OnlineNow from "@/components/OnlineNow";
 import TopViewed from "@/components/TopViewed";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -35,7 +36,8 @@ const Index = () => {
             <div className="flex-1 min-w-0">
               <AllEscorts cityFilter={selectedCity} />
             </div>
-            <aside className="w-full lg:w-80 flex-shrink-0">
+            <aside className="w-full lg:w-80 flex-shrink-0 space-y-8">
+              <OnlineNow />
               <TopViewed />
             </aside>
           </div>

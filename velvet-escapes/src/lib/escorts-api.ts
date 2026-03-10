@@ -11,6 +11,8 @@ export interface EscortListItem {
   isVip: boolean;
   averageRating: number;
   reviewsCount: number;
+  lastSeen?: string | null;
+  isOnline?: boolean;
   profilePicture: {
     id: string;
     picturePath: string;
@@ -92,6 +94,11 @@ export async function fetchVipEscorts(): Promise<EscortListItem[]> {
 
 export async function fetchTopViewedEscorts(): Promise<EscortListItem[]> {
   const data = await apiFetch("/escort/top-viewed");
+  return data?.items ?? data ?? [];
+}
+
+export async function fetchOnlineEscorts(): Promise<EscortListItem[]> {
+  const data = await apiFetch("/escort/online");
   return data?.items ?? data ?? [];
 }
 

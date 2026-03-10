@@ -100,7 +100,16 @@ export class ProfileService {
     });
     if (!profile) throw new NotFoundException('Escort profile not found');
 
-    Object.assign(profile, dto);
+    // Handle subscriptionPriceGel explicitly (null clears it, number sets it)
+    if ('subscriptionPriceGel' in dto) {
+      profile.subscriptionPriceGel =
+        dto.subscriptionPriceGel != null
+          ? Number(dto.subscriptionPriceGel)
+          : null;
+    }
+
+    const { subscriptionPriceGel: _, ...rest } = dto;
+    Object.assign(profile, rest);
     return this.profiles.save(profile);
   }
 

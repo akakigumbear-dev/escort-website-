@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { io, type Socket } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Heart, MessageCircle, Wallet, Sun, Moon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -64,6 +65,8 @@ const Header = () => {
     return () => window.removeEventListener("messages-read", handler);
   }, []);
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (!isAuthenticated || !token) return;
     const socket = io(API_BASE_URL + "/messages", {
@@ -81,11 +84,27 @@ const Header = () => {
       }
     });
 
+    socket.on("user-status", () => {
+      queryClient.invalidateQueries({ queryKey: ["escorts", "online"] });
+    });
+
+    const onBeforeUnload = () => {
+      socket.emit("go-offline");
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    const onLogout = () => {
+      socket.emit("go-offline");
+    };
+    window.addEventListener("auth-logout", onLogout);
+
     return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("auth-logout", onLogout);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, queryClient]);
 
   return (
     <>

@@ -62,13 +62,15 @@ export class MessagesService {
 
     const others = await this.userRepo.find({
       where: { id: In([...otherIds]) },
-      select: { id: true, email: true },
+      select: { id: true, email: true, lastSeen: true, isOnline: true },
     });
     const userMap = new Map(others.map((u) => [u.id, u]));
 
     const conversations: Array<{
       userId: string;
       email: string;
+      lastSeen: Date | null;
+      isOnline: boolean;
       lastMessage: {
         content: string | null;
         hasAttachment: boolean;
@@ -91,6 +93,8 @@ export class MessagesService {
       conversations.push({
         userId: other.id,
         email: other.email,
+        lastSeen: other.lastSeen ?? null,
+        isOnline: other.isOnline ?? false,
         lastMessage: {
           content: last.content,
           hasAttachment: !!last.attachmentPath,

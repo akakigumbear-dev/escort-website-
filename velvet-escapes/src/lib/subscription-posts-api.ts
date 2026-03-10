@@ -39,7 +39,7 @@ export async function createPost(profileId: string, content?: string, media?: Fi
   const token = localStorage.getItem("auth_token");
   const res = await fetch(`${API_BASE_URL}/subscription-posts`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" } : {},
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
   if (!res.ok) {

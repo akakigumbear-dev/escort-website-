@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOkResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { DepositDto } from './dtos/deposit.dto';
 import { ForgetPasswordDto } from './dtos/forget-password.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/Register.dto';
@@ -13,12 +13,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
+  @Throttle({ auth: { limit: 5, ttl: 60_000 } })
   @ApiOkResponse({ description: 'Register user' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Post('login')
+  @Throttle({ auth: { limit: 5, ttl: 60_000 } })
   @ApiOkResponse({ description: 'Login user' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
@@ -31,26 +33,8 @@ export class AuthController {
     return this.auth.getMe(req.user.userId);
   }
 
-  @Post('deposit')
-  @UseGuards(JwtAuthGuard)
-  @ApiOkResponse({ description: 'Deposit funds to user balance' })
-  deposit(
-    @Req() req: { user: { userId: string } },
-    @Body() dto: DepositDto,
-  ) {
-    return this.auth.deposit(req.user.userId, dto.amount);
-  }
-
-  /** Alias for POST /auth/deposit — use this if deposit returns 404 (e.g. proxy/cache). */
-  @Post('balance')
-  @UseGuards(JwtAuthGuard)
-  @ApiOkResponse({ description: 'Add to user balance (same as deposit)' })
-  addBalance(
-    @Req() req: { user: { userId: string } },
-    @Body() dto: DepositDto,
-  ) {
-    return this.auth.deposit(req.user.userId, dto.amount);
-  }
+  // Balance is now credited ONLY via OxaPay webhook (POST /payment/webhook).
+  // Direct deposit endpoints have been removed for security.
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard)

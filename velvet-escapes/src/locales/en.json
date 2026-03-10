@@ -73,6 +73,9 @@
     "clear": "Clear",
     "copyright": "© {{year}} Élite Companions. All rights reserved."
   },
+  "onlineNow": {
+    "title": "Online Now"
+  },
   "topViewed": {
     "title": "Top Viewed",
     "noData": "No data yet"
@@ -138,6 +141,8 @@
     "fillAllFields": "Please fill in all fields.",
     "passwordMinLength": "New password must be at least 6 characters.",
     "passwordsDoNotMatch": "Passwords do not match.",
+    "transactions": "Deposit History",
+    "noTransactions": "No deposits yet.",
     "subscriptions": "My Subscriptions",
     "noSubscriptions": "You have no active subscriptions.",
     "unsubscribe": "Unsubscribe",
@@ -152,5 +157,12 @@
     "buy": "Buy VIP",
     "insufficientBalance": "Insufficient balance. Deposit from the header.",
     "success": "VIP extended"
+  },
+  "online": {
+    "now": "online",
+    "justNow": "just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
   }
 }

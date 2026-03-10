@@ -34,6 +34,12 @@ export class User {
   @OneToOne(() => EscortProfile, (profile) => profile.user)
   escort_profile?: EscortProfile;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  lastSeen?: Date | null;
+
+  @Column({ type: 'boolean', default: false })
+  isOnline!: boolean;
+
   @CreateDateColumn()
   createdAt!: Date;
 

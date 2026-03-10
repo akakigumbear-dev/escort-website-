@@ -7,7 +7,11 @@ type EscortListProfile = EscortProfile & {
   reviews?: EscortReview[];
 };
 
-export function mapEscortListItem(profile: EscortListProfile) {
+export function mapEscortListItem(
+  profile: EscortListProfile,
+  lastSeen?: Date | null,
+  isOnline?: boolean,
+) {
   const isVip = !!profile.vipUntil && new Date(profile.vipUntil) > new Date();
 
   const profilePicture =
@@ -39,6 +43,8 @@ export function mapEscortListItem(profile: EscortListProfile) {
     vipUntil: profile.vipUntil ?? null,
     averageRating,
     reviewsCount,
+    lastSeen: lastSeen ?? null,
+    isOnline: isOnline ?? false,
     profilePicture: profilePicture
       ? {
           id: profilePicture.id,

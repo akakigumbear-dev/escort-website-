@@ -56,6 +56,11 @@ export class EscortController {
     return this.escortService.getVipEscorts();
   }
 
+  @Get('online')
+  getOnlineEscorts() {
+    return this.escortService.getOnlineEscorts();
+  }
+
   @Get('enums')
   getEnums() {
     return {

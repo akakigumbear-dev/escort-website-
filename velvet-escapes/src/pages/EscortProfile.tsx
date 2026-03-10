@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -7,9 +7,10 @@ import SEO from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, Banknote, Ruler, Weight, Globe, Briefcase, User, Star, Calendar, MessageCircle, Lock } from "lucide-react";
+import { ArrowLeft, Crown, ShieldCheck, MapPin, Eye, Banknote, Ruler, Weight, Globe, Briefcase, User, Star, Calendar, MessageCircle, Lock, X, ChevronLeft, ChevronRight } from "lucide-react";
+import OnlineStatus from "@/components/OnlineStatus";
 
-const WHATSAPP_MSG = "I saw your profile at elit.ge @ velvet-escapes";
+const WHATSAPP_MSG = "Hello, I found your profile on http://elitescort.fun — visit";
 
 function getWhatsAppUrl(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -28,6 +29,99 @@ import { fetchEscortById, type EscortPrices } from "@/lib/escorts-api";
 import { buildImageUrl, PLACEHOLDER_THUMBNAIL, API_BASE_URL } from "@/lib/api";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { getPostsForProfile, type SubscriptionPostDto, buildPostMediaUrl, upvotePost, unvotePost, addPostComment, getPostComments, type PostCommentDto } from "@/lib/subscription-posts-api";
+
+function Lightbox({ images, index, onClose }: { images: string[]; index: number; onClose: () => void }) {
+  const [current, setCurrent] = useState(index);
+
+  const prev = useCallback(() => setCurrent((i) => (i - 1 + images.length) % images.length), [images.length]);
+  const next = useCallback(() => setCurrent((i) => (i + 1) % images.length), [images.length]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, prev, next]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors z-10"
+        aria-label="Close"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+        {current + 1} / {images.length}
+      </div>
+
+      {/* Prev */}
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); prev(); }}
+          className="absolute left-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors z-10"
+          aria-label="Previous"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={images[current]}
+        alt={`Photo ${current + 1}`}
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain select-none"
+        onClick={(e) => e.stopPropagation()}
+        draggable={false}
+      />
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); next(); }}
+          className="absolute right-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors z-10"
+          aria-label="Next"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Thumbnails strip */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 px-4 overflow-x-auto">
+          {images.map((src, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+              className={`flex-shrink-0 rounded overflow-hidden border-2 transition-all ${i === current ? "border-primary scale-110" : "border-transparent opacity-60 hover:opacity-90"}`}
+            >
+              <img src={src} alt={`thumb ${i + 1}`} className="h-10 w-10 object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PriceCard = ({ title, prices, t }: { title: string; prices: EscortPrices | null; t: (k: string) => string }) => (
   <div className="rounded-xl border border-border/50 bg-card p-5">
@@ -54,9 +148,9 @@ const EscortProfile = () => {
   const { t } = useTranslation();
   const { id } = useParams();
   const { isAuthenticated } = useAuth();
-  const [showContact, setShowContact] = useState(false);
   const [mainImgError, setMainImgError] = useState(false);
   const [failedGalleryIds, setFailedGalleryIds] = useState<Set<number>>(new Set());
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const { isFavorite, toggleFavorite } = useFavorites();
 
   const { data: escort, isLoading, error } = useQuery({
@@ -112,6 +206,12 @@ const EscortProfile = () => {
       : buildImageUrl(escort.profilePicture.picturePath);
   const galleryImages = escort.pictures?.filter(p => !p.isProfilePicture) ?? [];
 
+  // All images in order (main first, then gallery) for lightbox navigation
+  const allLightboxImages = [
+    mainImgError || !escort.profilePicture ? PLACEHOLDER_THUMBNAIL : buildImageUrl(escort.profilePicture.picturePath),
+    ...galleryImages.map((p, i) => failedGalleryIds.has(p.id) ? PLACEHOLDER_THUMBNAIL : buildImageUrl(p.picturePath)),
+  ];
+
   const profileDescription = `${escort.username} — ${escort.city ?? "Georgia"}. ${escort.gender ?? ""} ${escort.ethnicity ?? ""}. View profile, services and prices on ELITEFUN.`.trim();
   const profileImage = escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : undefined;
   const profileJsonLd = {
@@ -138,6 +238,13 @@ const EscortProfile = () => {
         jsonLd={profileJsonLd}
       />
       <Header />
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={allLightboxImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
       <main className="container py-8">
         <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> {t("profile.backToBrowse")}
@@ -146,17 +253,24 @@ const EscortProfile = () => {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left: Images */}
           <div className="w-full lg:w-[420px] flex-shrink-0 space-y-3">
-            <div className="overflow-hidden rounded-xl border border-border/50">
+            <div
+              className="overflow-hidden rounded-xl border border-border/50 cursor-zoom-in"
+              onClick={() => setLightboxIndex(0)}
+            >
               <img src={mainImage} alt={escort.username} className="h-auto w-full object-cover aspect-[3/4]" onError={() => setMainImgError(true)} />
             </div>
             {galleryImages.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
-                {galleryImages.map((pic) => (
-                   <div key={pic.id} className="overflow-hidden rounded-lg border border-border/50">
+                {galleryImages.map((pic, idx) => (
+                   <div
+                     key={pic.id}
+                     className="overflow-hidden rounded-lg border border-border/50 cursor-zoom-in"
+                     onClick={() => setLightboxIndex(idx + 1)}
+                   >
                      <img
                        src={failedGalleryIds.has(pic.id) ? PLACEHOLDER_THUMBNAIL : buildImageUrl(pic.picturePath)}
                        alt={`${escort.username} photo`}
-                       className="h-full w-full object-cover aspect-square"
+                       className="h-full w-full object-cover aspect-square hover:scale-105 transition-transform duration-300"
                        loading="lazy"
                        onError={() => setFailedGalleryIds((prev) => new Set(prev).add(pic.id))}
                      />
@@ -184,6 +298,7 @@ const EscortProfile = () => {
               </div>
 
               <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <OnlineStatus lastSeen={escort.lastSeen} isOnline={(escort as any).isOnline} size="md" />
                 <span className="flex items-center gap-1"><MapPin className="h-4 w-4 text-primary" /> {escort.city}{escort.address && escort.address !== escort.city ? `, ${escort.address}` : ""}</span>
                 <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {escort.viewCount.toLocaleString()} {t("profile.views")}</span>
                 {escort.averageRating > 0 && (
@@ -254,43 +369,30 @@ const EscortProfile = () => {
 
             <div className="flex flex-wrap gap-3 items-center relative z-10" id="escort-actions">
               {escort.phoneNumber ? (
-                showContact ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg border border-border/50 bg-card px-4 py-2.5 font-medium text-foreground">
-                      {escort.phoneNumber}
-                    </span>
-                    <a
-                      href={getWhatsAppUrl(escort.phoneNumber)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50"
-                    >
-                      <WhatsAppIcon className="h-5 w-5" />
-                      WhatsApp
-                    </a>
-                  </div>
-                ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-lg border border-border/50 bg-card px-4 py-2.5 text-sm font-medium text-foreground">
+                    {escort.phoneNumber}
+                  </span>
                   <a
-                    href="#show-contact"
-                    className="gold-gradient inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-primary-foreground shadow transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowContact(true);
-                    }}
+                    href={getWhatsAppUrl(escort.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50"
                   >
-                    {t("profile.contact")}
+                    <WhatsAppIcon className="h-5 w-5" />
+                    WhatsApp
                   </a>
-                )
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground">{t("profile.contactNotAvailable")}</span>
               )}
-              {isAuthenticated && !escort.subscribed && (escort.subscriptionPriceGel != null || escort.isVip || (escort.exclusiveMediaCount ?? 0) > 0) && (
+              {isAuthenticated && !escort.subscribed && escort.subscriptionPriceGel != null && (
                 <Link
                   to={`/pay/${escort.id}`}
                   className="gold-gradient inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-primary-foreground shadow hover:opacity-90"
                 >
                   <Lock className="h-4 w-4" />
-                  {t("profile.subscribe")} {escort.subscriptionPriceGel != null ? `— ${escort.subscriptionPriceGel}₾/mo` : "— 29₾/mo"}
+                  {t("profile.subscribe")} — {escort.subscriptionPriceGel}₾/mo
                 </Link>
               )}
               {escort.subscribed && (

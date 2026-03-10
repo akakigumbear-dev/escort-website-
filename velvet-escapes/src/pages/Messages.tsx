@@ -14,6 +14,7 @@ import {
 } from "@/lib/messages-api";
 import { API_BASE_URL } from "@/lib/api";
 import { MessageCircle, Send, Paperclip, Loader2 } from "lucide-react";
+import { OnlineDot, OnlineLabel } from "@/components/OnlineStatus";
 
 function DMImage({ src, headers }: { src: string; headers: Record<string, string> }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -97,9 +98,26 @@ export default function Messages() {
         );
       }
     };
+
+    const onUserStatus = (payload: { userId: string; online: boolean; lastSeen?: string }) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.userId === payload.userId
+            ? {
+                ...c,
+                isOnline: payload.online,
+                lastSeen: payload.online ? new Date().toISOString() : (payload.lastSeen ?? c.lastSeen),
+              }
+            : c
+        )
+      );
+    };
+
     socket.on("message", onMessage);
+    socket.on("user-status", onUserStatus);
     return () => {
       socket.off("message", onMessage);
+      socket.off("user-status", onUserStatus);
     };
   }, [selectedUserId]);
 
@@ -199,16 +217,22 @@ export default function Messages() {
                   className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors ${selectedUserId === c.userId ? "bg-primary/10 border-l-2 border-l-primary" : ""}`}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm truncate">{c.email}</p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <OnlineDot lastSeen={c.lastSeen} isOnline={c.isOnline} />
+                      <p className="font-medium text-sm truncate">{c.email}</p>
+                    </div>
                     {(c.unreadCount ?? 0) > 0 && (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                      <span className="flex-shrink-0 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                         {c.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {c.lastMessage.hasAttachment ? "📎 Attachment" : c.lastMessage.content || "—"}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate flex-1">
+                      {c.lastMessage.hasAttachment ? "📎 Attachment" : c.lastMessage.content || "—"}
+                    </p>
+                    <OnlineLabel lastSeen={c.lastSeen} isOnline={c.isOnline} />
+                  </div>
                 </button>
               ))
             )}
@@ -219,9 +243,11 @@ export default function Messages() {
           {selectedUserId ? (
             <>
               <div className="p-3 border-b border-border/50 flex items-center gap-2">
+                <OnlineDot lastSeen={selectedConvo?.lastSeen} isOnline={selectedConvo?.isOnline} size="md" />
                 <span className="font-medium text-sm truncate">
                   {selectedConvo?.email ?? selectedUserId.slice(0, 8)}
                 </span>
+                <OnlineLabel lastSeen={selectedConvo?.lastSeen} isOnline={selectedConvo?.isOnline} />
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {loadingMessages ? (
