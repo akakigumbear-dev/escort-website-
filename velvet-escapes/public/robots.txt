@@ -1,8 +1,38 @@
 User-agent: *
 Allow: /
+Allow: /escort/
 Disallow: /profile
+Disallow: /account
 Disallow: /messages
 Disallow: /pay/
 Disallow: /favorites
 
+# Sitemaps
 Sitemap: https://elitescort.fun/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Google
+User-agent: Googlebot
+Allow: /
+Disallow: /profile
+Disallow: /account
+Disallow: /messages
+Disallow: /pay/
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /profile
+Disallow: /account
+Disallow: /messages
+Disallow: /pay/
+
+# Yandex (popular in region)
+User-agent: Yandex
+Allow: /
+Disallow: /profile
+Disallow: /account
+Disallow: /messages
+Disallow: /pay/

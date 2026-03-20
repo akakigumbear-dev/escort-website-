@@ -138,11 +138,11 @@ export default function MyAccount() {
     <div className="min-h-screen bg-background">
       <SEO title={t("account.title")} noindex />
       <Header />
-      <main className="container py-8 max-w-2xl mx-auto space-y-8">
-        <h1 className="font-display text-2xl font-bold text-foreground">{t("account.title")}</h1>
+      <main className="container py-6 sm:py-8 px-4 sm:px-6 max-w-2xl mx-auto space-y-6 sm:space-y-8">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">{t("account.title")}</h1>
 
         {/* User info */}
-        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-3">
+        <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-6 space-y-3">
           <h2 className="font-display text-lg font-semibold text-foreground">{t("account.info")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -167,12 +167,12 @@ export default function MyAccount() {
         </div>
 
         {/* Change password */}
-        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-6 space-y-4">
           <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" /> {t("account.changePassword")}
           </h2>
 
-          <div className="space-y-3 max-w-sm">
+          <div className="space-y-3 max-w-full sm:max-w-sm">
             <div className="relative">
               <input
                 type={showCurrent ? "text" : "password"}
@@ -236,7 +236,7 @@ export default function MyAccount() {
         </div>
 
         {/* Transactions */}
-        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-6 space-y-4">
           <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
             <Banknote className="h-5 w-5 text-primary" /> {t("account.transactions")}
           </h2>
@@ -282,7 +282,7 @@ export default function MyAccount() {
         </div>
 
         {/* Subscriptions */}
-        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-6 space-y-4">
           <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" /> {t("account.subscriptions")}
           </h2>

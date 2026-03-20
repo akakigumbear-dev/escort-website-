@@ -103,8 +103,29 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    overscroll-behavior-y: contain;
+  }
+
+  /* Better touch targets on mobile */
+  @media (max-width: 767px) {
+    button, a, input, select, textarea {
+      min-height: 36px;
+    }
+
+    textarea {
+      min-height: auto;
+    }
   }
 }
 
@@ -135,5 +156,15 @@
     inset: 0;
     background: linear-gradient(135deg, transparent 40%, hsl(var(--gold) / 0.05) 50%, transparent 60%);
     pointer-events: none;
+  }
+
+  /* Hide scrollbar for tab bars on mobile */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

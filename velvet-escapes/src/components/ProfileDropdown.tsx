@@ -7,12 +7,62 @@ import { User, LogOut, Star, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import BecomeEscortModal from "@/components/BecomeEscortModal";
 
-const ProfileDropdown = () => {
+const ProfileDropdown = ({ mobile, onAction }: { mobile?: boolean; onAction?: () => void }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout, escortProfile } = useAuth();
   const [escortModalOpen, setEscortModalOpen] = useState(false);
 
+  const handleAction = (fn: () => void) => {
+    fn();
+    onAction?.();
+  };
+
+  // Mobile: render links as a list instead of dropdown
+  if (mobile) {
+    return (
+      <>
+        <div className="space-y-1">
+          <div className="px-3 py-1.5 text-xs text-muted-foreground truncate">{user?.email}</div>
+          <Link
+            to="/account"
+            onClick={onAction}
+            className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <Settings className="h-5 w-5 text-primary" /> {t("account.title")}
+          </Link>
+          {escortProfile ? (
+            <Link
+              to="/profile"
+              onClick={onAction}
+              className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <User className="h-5 w-5 text-primary" /> {t("profile.myProfileTitle")}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleAction(() => setEscortModalOpen(true))}
+              className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <Star className="h-5 w-5 text-primary" /> {t("auth.becomeEscort")}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleAction(logout)}
+            className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-muted transition-colors"
+          >
+            <LogOut className="h-5 w-5" /> {t("auth.logout")}
+          </button>
+        </div>
+
+        <BecomeEscortModal open={escortModalOpen} onOpenChange={setEscortModalOpen} onComplete={() => { setEscortModalOpen(false); onAction?.(); navigate("/profile"); }} />
+      </>
+    );
+  }
+
+  // Desktop: dropdown menu
   return (
     <>
       <DropdownMenu>
@@ -32,7 +82,7 @@ const ProfileDropdown = () => {
           {escortProfile ? (
             <DropdownMenuItem asChild>
               <Link to="/profile" className="cursor-pointer flex items-center">
-                <User className="h-4 w-4 mr-2 text-primary" /> {t("auth.editProfile")}
+                <User className="h-4 w-4 mr-2 text-primary" /> {t("profile.myProfileTitle")}
               </Link>
             </DropdownMenuItem>
           ) : (

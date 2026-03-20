@@ -1,8 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- Homepage -->
   <url>
     <loc>https://elitescort.fun/</loc>
+    <xhtml:link rel="alternate" hreflang="ka" href="https://elitescort.fun/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://elitescort.fun/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://elitescort.fun/" />
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <!-- City pages - Tbilisi -->
+  <url>
+    <loc>https://elitescort.fun/?city=Tbilisi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- City pages - Batumi -->
+  <url>
+    <loc>https://elitescort.fun/?city=Batumi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- City pages - Kutaisi -->
+  <url>
+    <loc>https://elitescort.fun/?city=Kutaisi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- City pages - Rustavi -->
+  <url>
+    <loc>https://elitescort.fun/?city=Rustavi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- City pages - Zugdidi -->
+  <url>
+    <loc>https://elitescort.fun/?city=Zugdidi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- City pages - Gori -->
+  <url>
+    <loc>https://elitescort.fun/?city=Gori</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- City pages - Poti -->
+  <url>
+    <loc>https://elitescort.fun/?city=Poti</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- City pages - Kobuleti -->
+  <url>
+    <loc>https://elitescort.fun/?city=Kobuleti</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

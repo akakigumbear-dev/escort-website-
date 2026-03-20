@@ -1,4 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +26,9 @@ const VIPCarousel = () => {
     queryKey: ["escorts", "vips"],
     queryFn: fetchVipEscorts,
   });
+
+  // Shuffle once per data load so each visit shows a different order
+  const shuffled = useMemo(() => shuffleArray(vipEscorts), [vipEscorts]);
 
   const checkScroll = () => {
     if (!scrollRef.current) return;
@@ -65,14 +77,14 @@ const VIPCarousel = () => {
                 <Skeleton className="aspect-[3/4] w-full rounded-lg" />
               </div>
             ))
-          : vipEscorts.map((escort, i) => (
+          : shuffled.map((escort, i) => (
               <div key={escort.id} className="w-[220px] flex-shrink-0 snap-start opacity-0 animate-fade-in md:w-[240px]" style={{ animationDelay: `${i * 80}ms` }}>
                 <EscortCard escort={escort} />
               </div>
             ))}
       </div>
 
-      {!isLoading && vipEscorts.length === 0 && (
+      {!isLoading && shuffled.length === 0 && (
         <p className="text-center text-sm text-muted-foreground py-8">{t("vip.noVip")}</p>
       )}
     </section>

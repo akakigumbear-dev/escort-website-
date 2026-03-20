@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { io, type Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Heart, MessageCircle, Wallet, Sun, Moon } from "lucide-react";
+import { Sparkles, Heart, MessageCircle, Wallet, Sun, Moon, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
@@ -28,11 +28,17 @@ const Header = () => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const socketRef = useRef<Socket | null>(null);
 
   const onMessagesPageRef = useRef(onMessagesPage);
   onMessagesPageRef.current = onMessagesPage;
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Fetch unread count on login
   useEffect(() => {
@@ -109,13 +115,15 @@ const Header = () => {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl font-bold tracking-wide gold-text">ELITEFUN</span>
+        <div className="container flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <span className="font-display text-lg sm:text-xl font-bold tracking-wide gold-text">ELITEFUN</span>
           </Link>
 
-          <nav className="flex items-center gap-3" aria-label="Main navigation">
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-3" aria-label="Main navigation">
             <LanguageSwitcher />
             <button
               type="button"
@@ -177,7 +185,96 @@ const Header = () => {
               </>
             )}
           </nav>
+
+          {/* Mobile nav - essential icons + hamburger */}
+          <div className="flex md:hidden items-center gap-1.5">
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setDepositOpen(true)}
+                className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-medium"
+                aria-label={t("deposit.title")}
+              >
+                <Wallet className="h-3.5 w-3.5 text-primary" />
+                <span className="gold-text font-semibold">{Number(user?.balance ?? 0).toFixed(0)} ₾</span>
+              </button>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/messages"
+                className="relative flex items-center justify-center rounded-lg p-2 text-muted-foreground"
+                aria-label="Messages"
+                onClick={() => setUnread(0)}
+              >
+                <MessageCircle className="h-5 w-5" />
+                {!onMessagesPage && unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white animate-pulse">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted transition-colors"
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile menu overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+            <div className="container px-4 py-4 space-y-3">
+              {/* Theme + Language row */}
+              <div className="flex items-center justify-between">
+                <LanguageSwitcher />
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center rounded-lg p-2.5 text-muted-foreground hover:bg-muted transition-colors"
+                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
+              </div>
+
+              {/* Favorites */}
+              <button
+                type="button"
+                onClick={() => { setFavoritesOpen(true); setMobileMenuOpen(false); }}
+                className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Heart className="h-5 w-5 text-primary" fill={favorites.length > 0 ? "currentColor" : "none"} />
+                {t("header.favorites")}
+                {favorites.length > 0 && (
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {favorites.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Auth section */}
+              {isAuthenticated ? (
+                <div className="pt-2 border-t border-border/50">
+                  <ProfileDropdown mobile onAction={() => setMobileMenuOpen(false)} />
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-2 border-t border-border/50">
+                  <Button variant="outline" className="flex-1" onClick={() => { setLoginOpen(true); setMobileMenuOpen(false); }}>
+                    {t("header.login")}
+                  </Button>
+                  <Button className="flex-1 gold-gradient font-semibold" onClick={() => { setRegisterOpen(true); setMobileMenuOpen(false); }}>
+                    {t("header.register")}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       <RegisterModal open={registerOpen} onOpenChange={setRegisterOpen} onSwitchToLogin={() => setLoginOpen(true)} />

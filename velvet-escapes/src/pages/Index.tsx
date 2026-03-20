@@ -7,16 +7,46 @@ import TopViewed from "@/components/TopViewed";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 
-const WEBSITE_JSONLD = {
-  "@type": "WebSite",
-  name: "ELITEFUN",
-  url: "https://elitescort.fun",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: "https://elitescort.fun/?search={search_term_string}",
-    "query-input": "required name=search_term_string",
+const HOMEPAGE_JSONLD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "ELITEFUN",
+    alternateName: ["Elite Fun", "EliteScort", "ელიტფან"],
+    url: "https://elitescort.fun",
+    description: "Premium escort directory in Georgia — browse verified profiles in Tbilisi, Batumi, Kutaisi and more.",
+    inLanguage: ["ka", "en", "ru"],
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://elitescort.fun/?search={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
   },
-};
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Escort Profiles in Georgia",
+    description: "Browse verified escort profiles across Georgia including Tbilisi, Batumi, Kutaisi and more.",
+    url: "https://elitescort.fun/",
+    numberOfItems: 100,
+    itemListOrder: "https://schema.org/ItemListUnordered",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://elitescort.fun/",
+      },
+    ],
+  },
+];
 
 const Index = () => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -25,8 +55,9 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <SEO
         canonical="/"
-        description="Browse verified escort profiles in Tbilisi, Batumi, Kutaisi and more. Premium companion directory in Georgia."
-        jsonLd={WEBSITE_JSONLD}
+        description="Escort girls in Georgia — Tbilisi, Batumi, Kutaisi and more. ესკორტ გოგოები საქართველოში — თბილისი, ბათუმი, ქუთაისი. Browse verified VIP escort profiles. Premium companion directory."
+        keywords="escort girls Georgia, escort gogoebi, escort Tbilisi, escort Batumi, escort Kutaisi, ესკორტ გოგოები, ესკორტ გოგო, ესკორტი თბილისი, ესკორტი ბათუმი, ესკორტი ქუთაისი, VIP escort Georgia, premium escort service"
+        jsonLd={HOMEPAGE_JSONLD}
       />
       <Header />
       <main>

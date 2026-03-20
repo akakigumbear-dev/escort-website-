@@ -212,26 +212,46 @@ const EscortProfile = () => {
     ...galleryImages.map((p, i) => failedGalleryIds.has(p.id) ? PLACEHOLDER_THUMBNAIL : buildImageUrl(p.picturePath)),
   ];
 
-  const profileDescription = `${escort.username} — ${escort.city ?? "Georgia"}. ${escort.gender ?? ""} ${escort.ethnicity ?? ""}. View profile, services and prices on ELITEFUN.`.trim();
+  const servicesText = escort.services?.length ? escort.services.slice(0, 4).join(", ") : "";
+  const cityKa = escort.city ?? "საქართველო";
+  const cityEn = escort.city ?? "Georgia";
+  const profileDescription = `${escort.username} — Escort girl in ${cityEn}. ესკორტ გოგო ${cityKa}. ${escort.gender ?? ""} ${escort.ethnicity ?? ""}${escort.age ? `, ${escort.age} yrs` : ""}${servicesText ? `. Services: ${servicesText}` : ""}. View photos and prices on ELITEFUN.`.trim();
+  const profileKeywords = `${escort.username}, escort ${cityEn}, escort girl ${cityEn}, ესკორტი ${cityKa}, ესკორტ გოგო ${cityKa}, ${escort.gender ?? ""} escort ${cityEn}, escort gogoebi ${cityEn}`;
   const profileImage = escort.profilePicture ? buildImageUrl(escort.profilePicture.picturePath) : undefined;
-  const profileJsonLd = {
-    "@type": "ProfilePage",
-    name: escort.username,
-    description: profileDescription,
-    url: `https://elitescort.fun/escort/${escort.id}`,
-    ...(profileImage ? { image: profileImage } : {}),
-    mainEntity: {
-      "@type": "Person",
+  const profileJsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
       name: escort.username,
-      ...(escort.city ? { address: { "@type": "PostalAddress", addressLocality: escort.city, addressCountry: "GE" } } : {}),
+      description: profileDescription,
+      url: `https://elitescort.fun/escort/${escort.id}`,
+      ...(profileImage ? { image: profileImage } : {}),
+      dateModified: new Date().toISOString(),
+      mainEntity: {
+        "@type": "Person",
+        name: escort.username,
+        ...(profileImage ? { image: profileImage } : {}),
+        ...(escort.city ? { address: { "@type": "PostalAddress", addressLocality: escort.city, addressCountry: "GE" } } : {}),
+        ...(escort.gender ? { gender: escort.gender } : {}),
+      },
     },
-  };
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://elitescort.fun/" },
+        { "@type": "ListItem", position: 2, name: escort.city ?? "Georgia", item: `https://elitescort.fun/?city=${escort.city ?? ""}` },
+        { "@type": "ListItem", position: 3, name: escort.username, item: `https://elitescort.fun/escort/${escort.id}` },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={`${escort.username} — ${escort.city ?? "Georgia"}`}
+        title={`${escort.username} — Escort in ${escort.city ?? "Georgia"}`}
         description={profileDescription}
+        keywords={profileKeywords}
         canonical={`/escort/${escort.id}`}
         ogType="profile"
         ogImage={profileImage}
