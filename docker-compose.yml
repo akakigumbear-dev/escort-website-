@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     # Localhost only — use SSH tunnel for remote DB access: ssh -L 5432:127.0.0.1:5432 root@your-server
     ports:
-      - "127.0.0.1:${DB_PORT}:5432"
+      - "0.0.0.0:${DB_PORT}:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
@@ -30,6 +30,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      DEFAULT_VIP_DAYS: ${DEFAULT_VIP_DAYS}
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432

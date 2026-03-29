@@ -46,12 +46,16 @@ export class ProfileService {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
+    const defaultVipDays = parseInt(process.env.DEFAULT_VIP_DAYS ?? '30', 10);
+    const vipUntil = new Date();
+    vipUntil.setDate(vipUntil.getDate() + defaultVipDays);
+
     const profile = this.profiles.create({
       ...dto,
       user,
       isVerified: false,
       viewCount: 0,
-      vipUntil: null,
+      vipUntil,
       prices: [],
     } as any);
 

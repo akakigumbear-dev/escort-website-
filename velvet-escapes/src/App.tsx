@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
+import AgeVerificationModal from "./components/AgeVerificationModal";
 
 const EscortProfile = lazy(() => import("./pages/EscortProfile"));
 const EscortDashboard = lazy(() => import("./pages/EscortDashboard"));
@@ -26,6 +27,7 @@ const App = () => (
       <AuthProvider>
         <FavoritesProvider>
           <TooltipProvider>
+          <AgeVerificationModal />
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

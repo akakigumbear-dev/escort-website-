@@ -92,7 +92,16 @@ export class AuthService {
 
     let linkedProfile = false;
     if (escortWithPhone) {
+      const defaultVipDays = parseInt(process.env.DEFAULT_VIP_DAYS ?? '30', 10);
+      const now = new Date();
+      const base =
+        escortWithPhone.vipUntil && escortWithPhone.vipUntil > now
+          ? escortWithPhone.vipUntil
+          : now;
+      const vipUntil = new Date(base.getTime() + defaultVipDays * 24 * 60 * 60 * 1000);
+
       escortWithPhone.user = savedUser;
+      escortWithPhone.vipUntil = vipUntil;
       await this.escortProfileRepo.save(escortWithPhone);
       savedUser.role = UserRole.ESCORT;
       await this.usersRepo.update(savedUser.id, { role: UserRole.ESCORT });

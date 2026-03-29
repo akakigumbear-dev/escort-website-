@@ -34,18 +34,20 @@ const EscortCard = ({ escort, compact }: EscortCardProps) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
 
-        <div className="absolute top-2 left-2 flex gap-1.5">
-          {escort.isVip && (
-            <span className="flex items-center gap-1 rounded-full gold-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-              <Crown className="h-3 w-3" /> VIP
-            </span>
-          )}
-          {escort.isVerified && (
+        {escort.isVerified && (
+          <div className="absolute top-2 left-2">
             <span className="flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
               <ShieldCheck className="h-3 w-3" /> Verified
             </span>
-          )}
-        </div>
+          </div>
+        )}
+        {escort.isVip && (
+          <div className="absolute top-2 right-2">
+            <span className="flex items-center gap-1 rounded-full gold-gradient px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[0_0_8px_hsl(var(--gold)/0.5)]">
+              <Crown className="h-3 w-3" /> VIP
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3">
